@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 using Cinemachine;
+using StarterAssets;
 
 public class PLaySceneManager : Singleton<PLaySceneManager>
 {
     [SerializeField] private CinemachineVirtualCamera _playerFollowCamera;
+    [SerializeField] public UICanvasControllerInput uiCanvasControllerInput;
     public CinemachineVirtualCamera PlayerFollowCamera { 
         get { 
             if(_playerFollowCamera == null){

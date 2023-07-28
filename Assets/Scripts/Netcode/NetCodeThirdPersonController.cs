@@ -3,6 +3,8 @@
 using UnityEngine.InputSystem;
 #endif
 using Unity.Netcode;
+using System;
+using Random = UnityEngine.Random;
 
 /* Note: animations are called via the controller for both the character and capsule using animator null checks
  */
@@ -119,7 +121,17 @@ namespace StarterAssets
             get
             {
 #if ENABLE_INPUT_SYSTEM && STARTER_ASSETS_PACKAGES_CHECKED
-                return _playerInput.currentControlScheme == "KeyboardMouse";
+                try
+                {
+                    if(_playerInput == null){
+                        Debug.LogWarning("== Player Input is null");
+                    }
+                    return _playerInput.currentControlScheme == "KeyboardMouse";
+                }
+                catch (Exception e)
+                {
+                    return false;
+                }
 #else
 				return false;
 #endif
@@ -138,16 +150,12 @@ namespace StarterAssets
 
         private void Start()
         {
+            Debug.Log("=== Start NetCode Third Person Controller OnNetworkSpawn ID: " + OwnerClientId + " Role : " + (IsHost ? "Host" : "Client"));
             _cinemachineTargetYaw = CinemachineCameraTarget.transform.rotation.eulerAngles.y;
 
             _hasAnimator = TryGetComponent(out _animator);
             _controller = GetComponent<CharacterController>();
             _input = GetComponent<StarterAssetsInputs>();
-#if ENABLE_INPUT_SYSTEM && STARTER_ASSETS_PACKAGES_CHECKED
-            _playerInput = GetComponent<PlayerInput>();
-#else
-			Debug.LogError( "Starter Assets package is missing dependencies. Please use Tools/Starter Assets/Reinstall Dependencies to fix it");
-#endif
 
             AssignAnimationIDs();
 
@@ -155,19 +163,29 @@ namespace StarterAssets
             _jumpTimeoutDelta = JumpTimeout;
             _fallTimeoutDelta = FallTimeout;
 
+        }
+        public override void OnNetworkSpawn()
+        {
+            base.OnNetworkSpawn();
+
             StartLocalPlayer();
         }
         protected void StartLocalPlayer()
         {
-            if (IsLocalPlayer && IsOwner)
+            if (IsClient && IsOwner)
             {
+                Debug.Log("=== OnNetworkSpawn ID: " + OwnerClientId + " Role : " + (IsHost ? "Host" : "Client"));
+                _playerInput = GetComponent<PlayerInput>();
+                _playerInput.enabled = true;
                 PLaySceneManager.Instance.PlayerFollowCamera.Follow = CinemachineCameraTarget.transform;
+                _input = GetComponent<StarterAssetsInputs>();
+                PLaySceneManager.Instance.uiCanvasControllerInput.starterAssetsInputs = _input;
             }
         }
 
         private void Update()
         {
-            if (IsLocalPlayer && IsOwner)
+            if (IsOwner)
             {
                 _hasAnimator = TryGetComponent(out _animator);
 

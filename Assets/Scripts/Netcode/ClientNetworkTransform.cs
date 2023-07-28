@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode.Components;
 
+[DisallowMultipleComponent]
 public class ClientNetworkTransform : NetworkTransform
 {
     
