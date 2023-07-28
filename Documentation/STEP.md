@@ -25,4 +25,23 @@
 ## Setup Player : Move, control 
 * Target : Setup for control right client owned, camera follow client owned. 
 - In Third Person Control : In Update > Check if(!IsOwner) return; so if you're not owner of this client, you can control. 
-- 
+- In PlaySceneManager.cs, create variable for PlayerFollowCamera, refer it from editor or load from script : 
+```c# 
+[SerializeField] private CinemachineVirtualCamera _playerFollowCamera;
+    public CinemachineVirtualCamera PlayerFollowCamera { 
+        get { 
+            if(_playerFollowCamera == null){
+                _playerFollowCamera = FindObjectOfType<CinemachineVirtualCamera>();
+            }
+            return _playerFollowCamera; 
+        } 
+    }
+```
+- At Start func in Player script, check FollowCamera if it's owner and local player. 
+```c# 
+
+if (IsLocalPlayer && IsOwner)
+            {
+                PLaySceneManager.Instance.PlayerFollowCamera.Follow = CinemachineCameraTarget.transform;
+            }
+```
