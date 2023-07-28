@@ -139,7 +139,7 @@ namespace StarterAssets
         private void Start()
         {
             _cinemachineTargetYaw = CinemachineCameraTarget.transform.rotation.eulerAngles.y;
-            
+
             _hasAnimator = TryGetComponent(out _animator);
             _controller = GetComponent<CharacterController>();
             _input = GetComponent<StarterAssetsInputs>();
@@ -154,16 +154,27 @@ namespace StarterAssets
             // reset our timeouts on start
             _jumpTimeoutDelta = JumpTimeout;
             _fallTimeoutDelta = FallTimeout;
+
+            StartLocalPlayer();
+        }
+        protected void StartLocalPlayer()
+        {
+            if (IsLocalPlayer && IsOwner)
+            {
+                PLaySceneManager.Instance.PlayerFollowCamera.Follow = CinemachineCameraTarget.transform;
+            }
         }
 
         private void Update()
         {
-            if(!IsOwner) return;
-            _hasAnimator = TryGetComponent(out _animator);
+            if (IsLocalPlayer && IsOwner)
+            {
+                _hasAnimator = TryGetComponent(out _animator);
 
-            JumpAndGravity();
-            GroundedCheck();
-            Move();
+                JumpAndGravity();
+                GroundedCheck();
+                Move();
+            }
         }
 
         private void LateUpdate()

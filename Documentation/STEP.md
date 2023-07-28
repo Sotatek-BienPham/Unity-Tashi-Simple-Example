@@ -19,4 +19,10 @@
 - Add onClick for 3 button that we created before
 - In Player Prefabs : Add component Network Object, Network Transform, Network Animation .. for sync some basic info. 
 - Here I override Network Transform and Animation to Client Network Transform, Client Network Animation to turn off authoriatative from server. Trust on your clients.
-## 
+
+* When import using Tashi, got an error when build to Mac app : The type 'Random' is defined in an assembly that is not referenced. You must add a reference to assembly 'Unity.Mathematics, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null'.  So back to using NetCode for continues.
+
+## Setup Player : Move, control 
+* Target : Setup for control right client owned, camera follow client owned. 
+- In Third Person Control : In Update > Check if(!IsOwner) return; so if you're not owner of this client, you can control. 
+- 
