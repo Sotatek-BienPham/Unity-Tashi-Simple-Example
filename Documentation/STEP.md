@@ -45,3 +45,42 @@ if (IsLocalPlayer && IsOwner)
                 PLaySceneManager.Instance.PlayerFollowCamera.Follow = CinemachineCameraTarget.transform;
             }
 ```
+
+
+## Set Username Sync NetCode : 
+- In PlayerController (or st containt Player Logic, inherit NetworkBehaviour), create a playerName variable : 
+```c# 
+        public NetworkVariable<FixedString32Bytes> playerName = new NetworkVariable<FixedString32Bytes>();
+        public TextMeshPro playerNameText;
+```
+- You can create a struct called NetworkString repace for FixedString32Bytes and you can using NetworkVariable such as normaly string type. [Link](https://youtu.be/rFCFMkzFaog?t=1010)
+- in override func OnNetworkSpawn : 
+```c# 
+    /* Listen event when playerName changed value on server */
+    playerName.OnValueChanged += OnPlayerNameChanged;
+    /* Check if this client spawned, so set the player name notice to server */
+    if(IsLocalPlayer){
+        SetPlayerNameServerRpc(PlayerDataManager.Instance.playerData.name);
+    }
+```
+- Create ServerRpc and ClientRpc : 
+```c# 
+        [ServerRpc(RequireOwnership = false)]
+        public void SetPlayerNameServerRpc(string name)
+        {
+            Debug.Log(" SetPlayerNameServerRpc : " + name);
+            /* When Network Variable change in server, it'll trigger event, notify to all clients via event OnValueChanged */
+            playerName.Value = new FixedString32Bytes(name);
+        }
+```
+- At func listen event PlayerName Change : OnPlayerNameChanged : do something such as set text in UI
+```c# 
+      private void OnPlayerNameChanged(FixedString32Bytes previous, FixedString32Bytes current)
+        {
+            Debug.Log($"= ClientID {NetworkManager.LocalClientId} detect Player Name Change : {current}");
+            playerNameText.text = current.ToString();
+        }
+```
+- Get back to Player prefab, Create UI Text show player name, and referencens it to variable `playerNameText` that declare at first step. 
+- That's almost done : Start Host with name, Client join also have their custom name. 
+* But still got a Bug. that's in last client view, the names of the previous players have not been updated. I'll fix it in nexts step. 

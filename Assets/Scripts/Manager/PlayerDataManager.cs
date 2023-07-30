@@ -8,6 +8,7 @@ public class PlayerDataManager : MonoBehaviour
     public static PlayerDataManager Instance { get; private set; }
     [SerializeField] public PlayerData _playerData = new PlayerData();
     void Awake(){
+        DontDestroyOnLoad(this);
         if (Instance != null && Instance != this)
         {
             Destroy(this);

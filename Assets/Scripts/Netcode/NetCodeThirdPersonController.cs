@@ -5,6 +5,10 @@ using UnityEngine.InputSystem;
 using Unity.Netcode;
 using System;
 using Random = UnityEngine.Random;
+using TMPro;
+using Unity.Collections;
+using System.Collections.Generic;
+using System.Collections;
 
 /* Note: animations are called via the controller for both the character and capsule using animator null checks
  */
@@ -18,6 +22,8 @@ namespace StarterAssets
     public class NetCodeThirdPersonController : NetworkBehaviour
     {
         [Header("Player")]
+        public NetworkVariable<FixedString32Bytes> playerName = new NetworkVariable<FixedString32Bytes>();
+        public TextMeshPro playerNameText;
         [Tooltip("Move speed of the character in m/s")]
         public float MoveSpeed = 2.0f;
 
@@ -123,7 +129,8 @@ namespace StarterAssets
 #if ENABLE_INPUT_SYSTEM && STARTER_ASSETS_PACKAGES_CHECKED
                 try
                 {
-                    if(_playerInput == null){
+                    if (_playerInput == null)
+                    {
                         Debug.LogWarning("== Player Input is null");
                     }
                     return _playerInput.currentControlScheme == "KeyboardMouse";
@@ -166,15 +173,28 @@ namespace StarterAssets
         }
         public override void OnNetworkSpawn()
         {
+            Debug.Log("= OnNetworkSpawn");
             base.OnNetworkSpawn();
-
+            playerName.OnValueChanged += OnPlayerNameChanged;
+            if(IsLocalPlayer){
+                SetPlayerNameServerRpc(PlayerDataManager.Instance.playerData.name);
+            }
             StartLocalPlayer();
+        }
+        [ServerRpc(RequireOwnership = false)]
+        public void SetPlayerNameServerRpc(string name)
+        {
+            Debug.Log(" SetPlayerNameServerRpc : " + name);
+            /* When Network Variable change in server, it'll trigger event, notify to all clients via event OnValueChanged */
+            playerName.Value = new FixedString32Bytes(name);
         }
         protected void StartLocalPlayer()
         {
+
             if (IsClient && IsOwner)
             {
-                Debug.Log("=== OnNetworkSpawn ID: " + OwnerClientId + " Role : " + (IsHost ? "Host" : "Client"));
+                Debug.Log("=== OnNetworkSpawn ID: " + OwnerClientId + " Role : " + (IsHost ? "Host" : "Client") + " . Name : " + PlayerDataManager.Instance.playerData.name);
+
                 _playerInput = GetComponent<PlayerInput>();
                 _playerInput.enabled = true;
                 PLaySceneManager.Instance.PlayerFollowCamera.Follow = CinemachineCameraTarget.transform;
@@ -182,9 +202,18 @@ namespace StarterAssets
                 PLaySceneManager.Instance.uiCanvasControllerInput.starterAssetsInputs = _input;
             }
         }
-
+        private void OnPlayerNameChanged(FixedString32Bytes previous, FixedString32Bytes current)
+        {
+            Debug.Log($"= ClientID {NetworkManager.LocalClientId} detect Player Name Change : {current}");
+            playerNameText.text = current.ToString();
+        }
+        public void SetPlayerName()
+        {
+            playerNameText.text = playerName.Value.ToString();
+        }
         private void Update()
         {
+
             if (IsOwner)
             {
                 _hasAnimator = TryGetComponent(out _animator);
