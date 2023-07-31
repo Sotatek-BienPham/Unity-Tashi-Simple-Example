@@ -16,6 +16,7 @@ public class PLaySceneManager : NetworkBehaviour
     [SerializeField] public TextMeshProUGUI _playerStatus;
     [SerializeField] public TextMeshProUGUI _amoutPlayerOnline;
     private NetworkVariable<int> playersInRoom = new NetworkVariable<int>();
+    [SerializeField] private TextMeshProUGUI[] listPlayerNameText; 
     public int PlayersInRoom
     {
         get { return playersInRoom.Value; }
@@ -45,6 +46,9 @@ public class PLaySceneManager : NetworkBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        foreach(TextMeshProUGUI item in listPlayerNameText){
+            item.gameObject.SetActive(false);
+        }
         _playerStatus.text = PlayerDataManager.Instance.playerData.status.ToString();
 
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
@@ -80,8 +84,14 @@ public class PLaySceneManager : NetworkBehaviour
     {
         _amoutPlayerOnline.text = PlayersInRoom.ToString();
         Debug.LogWarning($"Player List have {PlayersList.Count} player. ");
+        int i = 0 ;
         foreach(KeyValuePair<ulong, NetCodeThirdPersonController> player in PlayersList){
             Debug.LogWarning($"= Client ID {player.Key} has Name {player.Value.PlayerName}");
+            if(i <= listPlayerNameText.Length){
+                listPlayerNameText[i].text = string.Format("#{0}: {1} - ID : {2}", i+1, player.Value.PlayerName, player.Key.ToString());
+                listPlayerNameText[i].gameObject.SetActive(true);
+                i++;
+            }
         }
     }
     public void StartServer()

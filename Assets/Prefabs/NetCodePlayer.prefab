@@ -1117,6 +1117,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ba983642c398348ab806791661a3c48c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  playerData:
+    name: NO_NAME
+    hp: 100
+    typePlayer: 0
+    status: 0
   playerName:
     m_InternalValue:
       utf8LengthInBytes: 7
@@ -2542,7 +2547,7 @@ GameObject:
   - component: {fileID: 176904280886057865}
   - component: {fileID: 1309591048261685004}
   m_Layer: 0
-  m_Name: Text (TMP)
+  m_Name: Player Name Text
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2565,7 +2570,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0.047, y: 0}
   m_SizeDelta: {x: 20, y: 5}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!23 &176904280886057865
@@ -2630,7 +2635,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Sample text
+  m_text: NAME
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -2657,8 +2662,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 2
-  m_fontSizeBase: 2
+  m_fontSize: 1.5
+  m_fontSizeBase: 1.5
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -2693,7 +2698,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 9.068331, y: 0, z: 9.14936, w: 4.3046255}
+  m_margin: {x: 9.068331, y: 0.30501223, z: 9.14936, w: 4.3046255}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   _SortingLayer: 0
