@@ -149,4 +149,34 @@ So I found a simple way to set player name for each player :
 - in Update() func, set playerNameText : 
         playerNameText.text = PlayerName;
 
+## Manager List Player Network in Play Scene Manager :
+- In PlaySceneManager.cs, create variable store player network spawned : 
+```c# 
+    Dictionary<ulong, NetCodeThirdPersonController> playersList = new Dictionary<ulong, NetCodeThirdPersonController>();
+    public Dictionary<ulong, NetCodeThirdPersonController> PlayersList { get => playersList; }
+```
+- And so I'll update value playersList in player script (NetCodeThirdPersonController for me) : 
+```c# 
+public override void OnNetworkSpawn()
+        {
+            base.OnNetworkSpawn();
+
+            if (IsOwner)
+            {
+                playerName.Value = new FixedString32Bytes(PlayerDataManager.Instance.playerData.name);
+            }
+            /* Add new player to list */
+            PLaySceneManager.Instance.PlayersList.Add(this.OwnerClientId, this);
+            StartLocalPlayer();
+        }
+        public override void OnNetworkDespawn()
+        {
+            base.OnNetworkDespawn();
+            /* Remove player by clientID from list  */
+            PLaySceneManager.Instance.PlayersList.Remove(this.OwnerClientId);
+        }
+```
+- And so on, in PlaySceneManager listPlayer will update automacally when has change. You cound use this player list to show List Player in game (about name, hp, score or st);
+- In this project, I firstly create a table to show List Player Name are in room. Back to UI Editor and create UI in play scene.
+
 

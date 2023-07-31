@@ -177,15 +177,19 @@ namespace StarterAssets
         }
         public override void OnNetworkSpawn()
         {
-            Debug.Log("= OnNetworkSpawn");
             base.OnNetworkSpawn();
 
             if (IsOwner)
             {
                 playerName.Value = new FixedString32Bytes(PlayerDataManager.Instance.playerData.name);
             }
-            
+            PLaySceneManager.Instance.PlayersList.Add(this.OwnerClientId, this);
             StartLocalPlayer();
+        }
+        public override void OnNetworkDespawn()
+        {
+            base.OnNetworkDespawn();
+            PLaySceneManager.Instance.PlayersList.Remove(this.OwnerClientId);
         }
         protected void StartLocalPlayer()
         {

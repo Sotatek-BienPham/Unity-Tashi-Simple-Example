@@ -6,6 +6,7 @@ using Cinemachine;
 using StarterAssets;
 using UnityEngine.SceneManagement;
 using TMPro;
+using Unity.Collections;
 
 public class PLaySceneManager : NetworkBehaviour
 {
@@ -19,8 +20,8 @@ public class PLaySceneManager : NetworkBehaviour
     {
         get { return playersInRoom.Value; }
     }
-    // Dictionary<uint, PlayerData> players = new Dictionary<uint, PlayerData>();
-    // public Dictionary<uint, PlayerData> Players { get => players; }
+    Dictionary<ulong, NetCodeThirdPersonController> playersList = new Dictionary<ulong, NetCodeThirdPersonController>();
+    public Dictionary<ulong, NetCodeThirdPersonController> PlayersList { get => playersList; }
     public CinemachineVirtualCamera PlayerFollowCamera
     {
         get
@@ -45,20 +46,24 @@ public class PLaySceneManager : NetworkBehaviour
     void Start()
     {
         _playerStatus.text = PlayerDataManager.Instance.playerData.status.ToString();
-        _amoutPlayerOnline.text = "1";
-        if (IsClient)
-        {
-            NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
-        }
+
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
         NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
 
+    }
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+        if(IsServer){
+            playersInRoom.Value ++;
+        }
     }
     private void OnClientConnected(ulong clientId)
     {
         Debug.Log($"Client ID {clientId} just Connected...");
         if (IsServer)
         {
+            /* If you put this code outside IsServer : get error cannot write */
             playersInRoom.Value++;
         }
     }
@@ -74,6 +79,10 @@ public class PLaySceneManager : NetworkBehaviour
     void Update()
     {
         _amoutPlayerOnline.text = PlayersInRoom.ToString();
+        Debug.LogWarning($"Player List have {PlayersList.Count} player. ");
+        foreach(KeyValuePair<ulong, NetCodeThirdPersonController> player in PlayersList){
+            Debug.LogWarning($"= Client ID {player.Key} has Name {player.Value.PlayerName}");
+        }
     }
     public void StartServer()
     {
