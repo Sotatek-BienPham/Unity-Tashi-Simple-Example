@@ -370,7 +370,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 200, y: 50}
+  m_SizeDelta: {x: 417.394, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &437755948
 MonoBehaviour:
@@ -755,7 +755,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 200, y: 50}
+  m_SizeDelta: {x: 417.394, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &642418849
 MonoBehaviour:
@@ -1061,7 +1061,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 200, y: 50}
+  m_SizeDelta: {x: 417.394, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &700919256
 MonoBehaviour:
@@ -2308,7 +2308,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 200, y: 50}
+  m_SizeDelta: {x: 417.394, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1050023306
 MonoBehaviour:
@@ -2614,7 +2614,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 200, y: 50}
+  m_SizeDelta: {x: 417.394, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1191573503
 MonoBehaviour:
@@ -3002,7 +3002,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 200, y: 50}
+  m_SizeDelta: {x: 417.394, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1311098790
 MonoBehaviour:
@@ -3451,7 +3451,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 200, y: 50}
+  m_SizeDelta: {x: 417.394, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1492649823
 MonoBehaviour:
@@ -3749,7 +3749,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 200, y: 50}
+  m_SizeDelta: {x: 417.394, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1802167159
 MonoBehaviour:
@@ -4658,6 +4658,11 @@ PrefabInstance:
       propertyPath: m_Materials.Array.data[0]
       value: 
       objectReference: {fileID: 2100000, guid: 7ab977a21c92388468ee65ad1c0e5a78, type: 2}
+    - target: {fileID: 2673046818320219877, guid: 09aade0ecefd01e4b8f7661acf64f5c2,
+        type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2742374090662089873, guid: 09aade0ecefd01e4b8f7661acf64f5c2,
         type: 3}
       propertyPath: m_Name
@@ -4732,6 +4737,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Box_350x250x300_Prefab
+      objectReference: {fileID: 0}
+    - target: {fileID: 5403654178567443540, guid: 09aade0ecefd01e4b8f7661acf64f5c2,
+        type: 3}
+      propertyPath: m_Enabled
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6056394991271758435, guid: 09aade0ecefd01e4b8f7661acf64f5c2,
         type: 3}

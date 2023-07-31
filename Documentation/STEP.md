@@ -178,5 +178,79 @@ public override void OnNetworkSpawn()
 ```
 - And so on, in PlaySceneManager listPlayer will update automacally when has change. You cound use this player list to show List Player in game (about name, hp, score or st);
 - In this project, I firstly create a table to show List Player Name are in room. Back to UI Editor and create UI in play scene.
+- And finnally, referencs list table, text row to fill list player in room info table. Example I writing in Update() : 
+```c# 
+    void Update()
+    {
+        _amoutPlayerOnline.text = PlayersInRoom.ToString();
+        int i = 0 ;
+        foreach(KeyValuePair<ulong, NetCodeThirdPersonController> player in PlayersList){
+            // Debug.LogWarning($"= Client ID {player.Key} has Name {player.Value.PlayerName}");
+            if(i <= listPlayerNameText.Length){
+                listPlayerNameText[i].text = string.Format("#{0}: {3} - {1} - ID : {2}", i+1, player.Value.PlayerName, player.Key.ToString(), player.Value.TypeInGame.ToString());
+                listPlayerNameText[i].gameObject.SetActive(true);
+                i++;
+            }
+        }
+        for(int j = i; j <= listPlayerNameText.Length - 1; j++){
+            listPlayerNameText[j].gameObject.SetActive(false);
+        }
+    }
+```
+
+## Add Logic Game Hide and Seek : 
+- In this project, The host will be Police and catch all other clients. The clients will be Thief and start running when spawned.
+- Create tag Police and Thief. 
+- Create variable storage state typeInGame of player , put it in NetCodeThirdPersonController.cs: 
+```c# 
+private NetworkVariable<PlayerTypeInGame> typeInGame = new NetworkVariable<PlayerTypeInGame>(PlayerTypeInGame.Thief, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+        public PlayerTypeInGame TypeInGame
+        {
+            get { return typeInGame.Value; }
+        }
+```
+- OnNetworkSpawn(), Add listten OnTypeInGame value changed, check if IsOwner > if IsHost will setup this Player is Police : change typeInGame.Value and tag such as code below : 
+```c# 
+        public override void OnNetworkSpawn()
+        {
+            typeInGame.OnValueChanged += OnTypeInGameChange;
+            if (IsOwner)
+            {
+                playerName.Value = new FixedString32Bytes(PlayerDataManager.Instance.playerData.name);
+                /* Host create this room will be Police, and all next clients are thief */
+                if (IsHost)
+                {
+                    typeInGame.Value = PlayerTypeInGame.Police;
+                    this.tag = Constants.TAG_POLICE;
+                }
+                else
+                {
+                    typeInGame.Value = PlayerTypeInGame.Thief;
+                    this.tag = Constants.TAG_THIEF;
+                }
+            }
+            /* .... do st other */
+        }
+        public void OnTypeInGameChange(PlayerTypeInGame pre, PlayerTypeInGame current){
+            this.tag = current.ToString(); /* Police or Thief */
+        }
+        public override void OnNetworkDespawn()
+        { /* Remove listen when OnNetworkDespawn */
+            base.OnNetworkDespawn();
+            typeInGame.OnValueChanged -= OnTypeInGameChange;
+            PLaySceneManager.Instance.PlayersList.Remove(this.OwnerClientId);
+        }
+```
+- Make something diff between Police and Thief, basiclly change text color for simple example, so when set playerNameText, I change the color also in Update(): 
+```c# 
+            if (TypeInGame == PlayerTypeInGame.Police)
+            {
+                playerNameText.color = Color.green;
+            }
+            else
+            {
+                playerNameText.color = Color.red;
+            }
+```
 
 

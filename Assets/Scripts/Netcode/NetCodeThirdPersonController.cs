@@ -24,8 +24,14 @@ namespace StarterAssets
         [Header("Player")]
         public PlayerData playerData = new PlayerData();
         public NetworkVariable<FixedString32Bytes> playerName = new NetworkVariable<FixedString32Bytes>("No-name", NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-        public string PlayerName {
-            get {return playerName.Value.ToString();}
+        public string PlayerName
+        {
+            get { return playerName.Value.ToString(); }
+        }
+        private NetworkVariable<PlayerTypeInGame> typeInGame = new NetworkVariable<PlayerTypeInGame>(PlayerTypeInGame.Thief, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+        public PlayerTypeInGame TypeInGame
+        {
+            get { return typeInGame.Value; }
         }
         public TextMeshPro playerNameText;
         [Tooltip("Move speed of the character in m/s")]
@@ -157,6 +163,7 @@ namespace StarterAssets
             {
                 _mainCamera = GameObject.FindGameObjectWithTag("MainCamera");
             }
+
         }
 
         private void Start()
@@ -178,17 +185,33 @@ namespace StarterAssets
         public override void OnNetworkSpawn()
         {
             base.OnNetworkSpawn();
-
+            typeInGame.OnValueChanged += OnTypeInGameChange;
             if (IsOwner)
             {
                 playerName.Value = new FixedString32Bytes(PlayerDataManager.Instance.playerData.name);
+                /* Host create this room will be Police, and all next clients are thief */
+                if (IsHost)
+                {
+                    typeInGame.Value = PlayerTypeInGame.Police;
+                    this.tag = Constants.TAG_POLICE;
+                }
+                else
+                {
+                    typeInGame.Value = PlayerTypeInGame.Thief;
+                    this.tag = Constants.TAG_THIEF;
+                }
             }
+
             PLaySceneManager.Instance.PlayersList.Add(this.OwnerClientId, this);
             StartLocalPlayer();
+        }
+        public void OnTypeInGameChange(PlayerTypeInGame pre, PlayerTypeInGame current){
+            this.tag = current.ToString(); /* Police or Thief */
         }
         public override void OnNetworkDespawn()
         {
             base.OnNetworkDespawn();
+            typeInGame.OnValueChanged -= OnTypeInGameChange;
             PLaySceneManager.Instance.PlayersList.Remove(this.OwnerClientId);
         }
         protected void StartLocalPlayer()
@@ -209,6 +232,14 @@ namespace StarterAssets
         private void Update()
         {
             playerNameText.text = PlayerName;
+            if (TypeInGame == PlayerTypeInGame.Police)
+            {
+                playerNameText.color = Color.green;
+            }
+            else
+            {
+                playerNameText.color = Color.red;
+            }
             if (IsOwner)
             {
                 _hasAnimator = TryGetComponent(out _animator);

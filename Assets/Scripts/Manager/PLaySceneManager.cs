@@ -83,15 +83,17 @@ public class PLaySceneManager : NetworkBehaviour
     void Update()
     {
         _amoutPlayerOnline.text = PlayersInRoom.ToString();
-        Debug.LogWarning($"Player List have {PlayersList.Count} player. ");
         int i = 0 ;
         foreach(KeyValuePair<ulong, NetCodeThirdPersonController> player in PlayersList){
-            Debug.LogWarning($"= Client ID {player.Key} has Name {player.Value.PlayerName}");
+            // Debug.LogWarning($"= Client ID {player.Key} has Name {player.Value.PlayerName}");
             if(i <= listPlayerNameText.Length){
-                listPlayerNameText[i].text = string.Format("#{0}: {1} - ID : {2}", i+1, player.Value.PlayerName, player.Key.ToString());
+                listPlayerNameText[i].text = string.Format("#{0}: {3} - {1} - ID : {2}", i+1, player.Value.PlayerName, player.Key.ToString(), player.Value.TypeInGame.ToString());
                 listPlayerNameText[i].gameObject.SetActive(true);
                 i++;
             }
+        }
+        for(int j = i; j <= listPlayerNameText.Length - 1; j++){
+            listPlayerNameText[j].gameObject.SetActive(false);
         }
     }
     public void StartServer()
