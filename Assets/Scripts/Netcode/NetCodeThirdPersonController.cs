@@ -22,7 +22,11 @@ namespace StarterAssets
     public class NetCodeThirdPersonController : NetworkBehaviour
     {
         [Header("Player")]
-        public NetworkVariable<FixedString32Bytes> playerName = new NetworkVariable<FixedString32Bytes>();
+        public PlayerData playerData = new PlayerData();
+        public NetworkVariable<FixedString32Bytes> playerName = new NetworkVariable<FixedString32Bytes>("No-name", NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+        public string PlayerName {
+            get {return playerName.Value.ToString();}
+        }
         public TextMeshPro playerNameText;
         [Tooltip("Move speed of the character in m/s")]
         public float MoveSpeed = 2.0f;
@@ -175,18 +179,13 @@ namespace StarterAssets
         {
             Debug.Log("= OnNetworkSpawn");
             base.OnNetworkSpawn();
-            playerName.OnValueChanged += OnPlayerNameChanged;
-            if(IsLocalPlayer){
-                SetPlayerNameServerRpc(PlayerDataManager.Instance.playerData.name);
+
+            if (IsOwner)
+            {
+                playerName.Value = new FixedString32Bytes(PlayerDataManager.Instance.playerData.name);
             }
+            
             StartLocalPlayer();
-        }
-        [ServerRpc(RequireOwnership = false)]
-        public void SetPlayerNameServerRpc(string name)
-        {
-            Debug.Log(" SetPlayerNameServerRpc : " + name);
-            /* When Network Variable change in server, it'll trigger event, notify to all clients via event OnValueChanged */
-            playerName.Value = new FixedString32Bytes(name);
         }
         protected void StartLocalPlayer()
         {
@@ -202,18 +201,10 @@ namespace StarterAssets
                 PLaySceneManager.Instance.uiCanvasControllerInput.starterAssetsInputs = _input;
             }
         }
-        private void OnPlayerNameChanged(FixedString32Bytes previous, FixedString32Bytes current)
-        {
-            Debug.Log($"= ClientID {NetworkManager.LocalClientId} detect Player Name Change : {current}");
-            playerNameText.text = current.ToString();
-        }
-        public void SetPlayerName()
-        {
-            playerNameText.text = playerName.Value.ToString();
-        }
+
         private void Update()
         {
-
+            playerNameText.text = PlayerName;
             if (IsOwner)
             {
                 _hasAnimator = TryGetComponent(out _animator);

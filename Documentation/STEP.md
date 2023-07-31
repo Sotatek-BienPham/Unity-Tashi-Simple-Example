@@ -46,15 +46,69 @@ if (IsLocalPlayer && IsOwner)
             }
 ```
 
+## Set Number Players In Room in UI : 
+- Create a Network Variable store this value : 
+```c# 
+    private NetworkVariable<int> playersInRoom = new NetworkVariable<int>();
+    public int PlayersInRoom
+    {
+        get { return playersInRoom.Value; }
+    }
+```
+- Then when Start: Handle event OnClientConnected and Disconnected for changing number players in room like this : 
+```c#
+NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+        NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
+```
+- Excecute change playersInRoom value when in server : When on server change this value, all client gonna be change after.
+```c# 
+private void OnClientConnected(ulong clientId)
+    {
+        Debug.Log($"Client ID {clientId} just Connected...");
+        if (IsServer)
+        {
+            playersInRoom.Value++;
+        }
+    }
+    private void OnClientDisconnected(ulong clientId)
+    {
+        Debug.Log($"Client ID {clientId} just disconnected...");
+        if (IsServer)
+        {
+            playersInRoom.Value--;
+        }
+    }
+```
+- Finnaly, in Update we can update UI text to show : 
+```c# 
+    _amoutPlayerOnline.text = PlayersInRoom.ToString();
+```
+** The more simple way to show total clients connected : 
+- On Start() : Add lines with func OnClientConnected, OnClientDisconnected are same as above: 
+```c# 
+        NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+        NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
 
+        if(IsServer){
+            playersInRoom.Value ++;
+        }
+```
+- Then in Update(), set UI text : 
+    ```c# 
+    _amoutPlayerOnline.text = PlayersInRoom.ToString();
+    ```
 ## Set Username Sync NetCode : 
 - In PlayerController (or st containt Player Logic, inherit NetworkBehaviour), create a playerName variable : 
 ```c# 
-        public NetworkVariable<FixedString32Bytes> playerName = new NetworkVariable<FixedString32Bytes>();
+        public NetworkVariable<FixedString32Bytes> playerName = new NetworkVariable<FixedString32Bytes>("No-name", NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+        public string PlayerName {
+            get {return playerName.Value.ToString();}
+        }
         public TextMeshPro playerNameText;
 ```
 - You can create a struct called NetworkString repace for FixedString32Bytes and you can using NetworkVariable such as normaly string type. [Link](https://youtu.be/rFCFMkzFaog?t=1010)
-- in override func OnNetworkSpawn : 
+
+* C1 : - in override func OnNetworkSpawn : 
 ```c# 
     /* Listen event when playerName changed value on server */
     playerName.OnValueChanged += OnPlayerNameChanged;
@@ -84,3 +138,15 @@ if (IsLocalPlayer && IsOwner)
 - Get back to Player prefab, Create UI Text show player name, and referencens it to variable `playerNameText` that declare at first step. 
 - That's almost done : Start Host with name, Client join also have their custom name. 
 * But still got a Bug. that's in last client view, the names of the previous players have not been updated. I'll fix it in nexts step. 
+So I found a simple way to set player name for each player : 
+- In OnNetworkSpawn() add this line, it'll change name for owner client and change in all other clients : 
+```c# 
+            if (IsOwner)
+            {
+                playerName.Value = new FixedString32Bytes(PlayerDataManager.Instance.playerData.name);
+            }
+```
+- in Update() func, set playerNameText : 
+        playerNameText.text = PlayerName;
+
+
