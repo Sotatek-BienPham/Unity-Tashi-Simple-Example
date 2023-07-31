@@ -14,6 +14,13 @@ public class PLaySceneManager : NetworkBehaviour
     [SerializeField] public UICanvasControllerInput uiCanvasControllerInput;
     [SerializeField] public TextMeshProUGUI _playerStatus;
     [SerializeField] public TextMeshProUGUI _amoutPlayerOnline;
+    private NetworkVariable<int> playersInRoom = new NetworkVariable<int>();
+    public int PlayersInRoom
+    {
+        get { return playersInRoom.Value; }
+    }
+    // Dictionary<uint, PlayerData> players = new Dictionary<uint, PlayerData>();
+    // public Dictionary<uint, PlayerData> Players { get => players; }
     public CinemachineVirtualCamera PlayerFollowCamera
     {
         get
@@ -43,32 +50,30 @@ public class PLaySceneManager : NetworkBehaviour
         {
             NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
         }
+        NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+        NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
+
     }
     private void OnClientConnected(ulong clientId)
     {
-        Debug.Log("= OnClientConnected : Client Id : " + clientId);
-        if (clientId == NetworkManager.Singleton.LocalClientId)
+        Debug.Log($"Client ID {clientId} just Connected...");
+        if (IsServer)
         {
-            Debug.Log("Client connected. You can now call ServerRpc methods.");
+            playersInRoom.Value++;
         }
+    }
+    private void OnClientDisconnected(ulong clientId)
+    {
+        Debug.Log($"Client ID {clientId} just disconnected...");
+        if (IsServer)
+        {
+            playersInRoom.Value--;
+        }
+    }
 
-        ReCalcTotalClientsTextServerRPC();
-    }
-    [ServerRpc(RequireOwnership = false)]
-    void ReCalcTotalClientsTextServerRPC()
-    {
-        int total = NetworkManager.Singleton.ConnectedClients.Count;
-        Debug.Log("= Server ReCalcTotalClientsTextServerRPC ConnectedClients: " + total);
-        SetTotalClientTextClientRpc(total);
-    }
-    [ClientRpc]
-    void SetTotalClientTextClientRpc(int value)
-    {
-        Debug.Log("= Client SetTotalClientTextClientRpc ConnectedClients: " + value);
-        _amoutPlayerOnline.text = value.ToString();
-    }
     void Update()
     {
+        _amoutPlayerOnline.text = PlayersInRoom.ToString();
     }
     public void StartServer()
     {
@@ -90,7 +95,7 @@ public class PLaySceneManager : NetworkBehaviour
         PlayerDataManager.Instance.SetStatus(PlayerStatus.Offline);
         SceneManager.LoadScene(0);
     }
-        public void Cleanup()
+    public void Cleanup()
     {
         if (NetworkManager.Singleton != null)
         {
