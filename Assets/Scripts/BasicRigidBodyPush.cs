@@ -9,6 +9,11 @@ public class BasicRigidBodyPush : MonoBehaviour
 	private void OnControllerColliderHit(ControllerColliderHit hit)
 	{
 		if (canPush) PushRigidBodies(hit);
+		if(hit.gameObject.tag == Constants.TAG_THIEF){
+			Debug.Log("Touch to Thief");
+		}else if(hit.gameObject.tag == Constants.TAG_POLICE){
+			Debug.Log("Touch to Police");
+		}
 	}
 
 	private void PushRigidBodies(ControllerColliderHit hit)

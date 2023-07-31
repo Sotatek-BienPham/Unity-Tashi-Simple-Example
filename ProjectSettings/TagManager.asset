@@ -5,6 +5,8 @@ TagManager:
   serializedVersion: 2
   tags:
   - CinemachineTarget
+  - Police
+  - Thief
   layers:
   - Default
   - TransparentFX
@@ -16,9 +18,9 @@ TagManager:
   - 
   - Character
   - Ground
-  - 
-  - 
-  - 
+  - Police
+  - Thief
+  - Bonus
   - 
   - 
   - 
