@@ -141,7 +141,7 @@ namespace StarterAssets
                 {
                     if (_playerInput == null)
                     {
-                        Debug.LogWarning("== Player Input is null");
+                        // Debug.LogWarning("== Player Input is null"); /* Alwayls show in clients, have to using joystick to move */
                     }
                     return _playerInput.currentControlScheme == "KeyboardMouse";
                 }
@@ -194,11 +194,13 @@ namespace StarterAssets
                 {
                     typeInGame.Value = PlayerTypeInGame.Police;
                     this.tag = Constants.TAG_POLICE;
+                    this.transform.position = PLaySceneManager.Instance.policeSpawnTransform.position;
                 }
                 else
                 {
                     typeInGame.Value = PlayerTypeInGame.Thief;
                     this.tag = Constants.TAG_THIEF;
+                    this.transform.position = PLaySceneManager.Instance.thiefSpawnTransform.position;
                 }
             }
 

@@ -19,6 +19,7 @@ public class PLaySceneManager : NetworkBehaviour
     [Header("Logic Game")]
     [SerializeField] public Transform policeSpawnTransform;
     [SerializeField] public Transform thiefSpawnTransform;
+    [SerializeField] public GameObject explosionBoomPrefab;
 
     private NetworkVariable<int> playersInRoom = new NetworkVariable<int>();
     [SerializeField] private TextMeshProUGUI[] listPlayerNameText; 

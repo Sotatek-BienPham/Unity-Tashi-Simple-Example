@@ -1174,80 +1174,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 642418847}
   m_CullTransparentMesh: 1
---- !u!1001 &650193216
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 98300126411939421, guid: f7ead457c89a741a0bd6e7ad08801c73,
-        type: 3}
-      propertyPath: GlobalObjectIdHash
-      value: 3600887579
-      objectReference: {fileID: 0}
-    - target: {fileID: 3893294197879345259, guid: f7ead457c89a741a0bd6e7ad08801c73,
-        type: 3}
-      propertyPath: m_RootOrder
-      value: 11
-      objectReference: {fileID: 0}
-    - target: {fileID: 3893294197879345259, guid: f7ead457c89a741a0bd6e7ad08801c73,
-        type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3893294197879345259, guid: f7ead457c89a741a0bd6e7ad08801c73,
-        type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3893294197879345259, guid: f7ead457c89a741a0bd6e7ad08801c73,
-        type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3893294197879345259, guid: f7ead457c89a741a0bd6e7ad08801c73,
-        type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 3893294197879345259, guid: f7ead457c89a741a0bd6e7ad08801c73,
-        type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3893294197879345259, guid: f7ead457c89a741a0bd6e7ad08801c73,
-        type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3893294197879345259, guid: f7ead457c89a741a0bd6e7ad08801c73,
-        type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3893294197879345259, guid: f7ead457c89a741a0bd6e7ad08801c73,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3893294197879345259, guid: f7ead457c89a741a0bd6e7ad08801c73,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3893294197879345259, guid: f7ead457c89a741a0bd6e7ad08801c73,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4416926081852918481, guid: f7ead457c89a741a0bd6e7ad08801c73,
-        type: 3}
-      propertyPath: m_Name
-      value: NetCodePlayer
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: f7ead457c89a741a0bd6e7ad08801c73, type: 3}
 --- !u!1 &687151723
 GameObject:
   m_ObjectHideFlags: 0
@@ -2437,8 +2363,10 @@ MonoBehaviour:
   uiCanvasControllerInput: {fileID: 1645078204}
   _playerStatus: {fileID: 695060809}
   _amoutPlayerOnline: {fileID: 1363838005}
-  policeSpawnTransform: {fileID: 0}
-  thiefSpawnTransform: {fileID: 0}
+  policeSpawnTransform: {fileID: 2145456461}
+  thiefSpawnTransform: {fileID: 191781286}
+  explosionBoomPrefab: {fileID: 1892078723244562, guid: 16c0837f972ea4b0ba606b94222c4e00,
+    type: 3}
   listPlayerNameText:
   - {fileID: 1802167159}
   - {fileID: 1311098790}
