@@ -1,4 +1,7 @@
 {
+  "testables": [
+    "dev.tashi.network.transport"
+  ],
   "dependencies": {
     "com.coffee.ui-effect": "https://github.com/mob-sakai/UIEffect.git",
     "com.unity.cinemachine": "2.8.9",
@@ -17,6 +20,7 @@
     "com.unity.timeline": "1.6.5",
     "com.unity.ugui": "1.0.0",
     "com.unity.visualscripting": "1.8.0",
+    "dev.tashi.network.transport": "file:../Assets/dev.tashi.network.transport",
     "com.unity.modules.ai": "1.0.0",
     "com.unity.modules.androidjni": "1.0.0",
     "com.unity.modules.animation": "1.0.0",

@@ -1,0 +1,22 @@
+{
+    "name": "dev.tashi.network.transport",
+    "rootNamespace": "Tashi.NetworkTransport",
+    "references": [
+        "Unity.Netcode.Runtime",
+        "Unity.Services.Relay",
+        "Unity.Networking.Transport",
+        "Unity.Collections",
+        "Unity.Burst",
+        "Unity.Services.Lobbies",
+        "Unity.Random"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
