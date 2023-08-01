@@ -32,10 +32,10 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
 
         progress.completed += (op) =>
         {
-            Debug.Log($"Scene {SceneGamePlayName} loaded.");
+            
             PlayerDataManager.Instance.SetStatus(PlayerStatus.InRoom);
             NetworkManager.Singleton.StartHost();
-            Debug.Log("Started Host");
+
         };
     }
     public void StartClient()

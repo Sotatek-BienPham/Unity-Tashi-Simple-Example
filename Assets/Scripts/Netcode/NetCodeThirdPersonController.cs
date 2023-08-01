@@ -23,6 +23,9 @@ namespace StarterAssets
     {
         [Header("Player")]
         public PlayerData playerData = new PlayerData();
+        [Tooltip("isImmortal : true -> police cannot catch this thief when touch. This variable just change on ServerRpc. Don't trust client")]
+        private NetworkVariable<bool> isImmortal = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+        public bool IsImmortal { get { return isImmortal.Value; } }
         public NetworkVariable<FixedString32Bytes> playerName = new NetworkVariable<FixedString32Bytes>("No-name", NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
         public string PlayerName
         {
@@ -154,7 +157,14 @@ namespace StarterAssets
 #endif
             }
         }
-
+        void OnEnable()
+        {
+            // EventManager.Instance.StartListening(EventName.TouchThief, OnTouchThief);
+        }
+        void OnDisable()
+        {
+            // EventManager.Instance.StopListening(EventName.TouchThief, OnTouchThief);
+        }
 
         private void Awake()
         {
@@ -186,6 +196,7 @@ namespace StarterAssets
         {
             base.OnNetworkSpawn();
             typeInGame.OnValueChanged += OnTypeInGameChange;
+            isImmortal.OnValueChanged += OnIsImmortalChange;
             if (IsOwner)
             {
                 playerName.Value = new FixedString32Bytes(PlayerDataManager.Instance.playerData.name);
@@ -207,13 +218,12 @@ namespace StarterAssets
             PLaySceneManager.Instance.PlayersList.Add(this.OwnerClientId, this);
             StartLocalPlayer();
         }
-        public void OnTypeInGameChange(PlayerTypeInGame pre, PlayerTypeInGame current){
-            this.tag = current.ToString(); /* Police or Thief */
-        }
+
         public override void OnNetworkDespawn()
         {
             base.OnNetworkDespawn();
             typeInGame.OnValueChanged -= OnTypeInGameChange;
+            isImmortal.OnValueChanged -= OnIsImmortalChange;
             PLaySceneManager.Instance.PlayersList.Remove(this.OwnerClientId);
         }
         protected void StartLocalPlayer()
@@ -221,7 +231,7 @@ namespace StarterAssets
 
             if (IsClient && IsOwner)
             {
-                Debug.Log("=== OnNetworkSpawn ID: " + OwnerClientId + " Role : " + (IsHost ? "Host" : "Client") + " . Name : " + PlayerDataManager.Instance.playerData.name);
+                // Debug.Log("=== OnNetworkSpawn ID: " + OwnerClientId + " Role : " + (IsHost ? "Host" : "Client") + " . Name : " + PlayerDataManager.Instance.playerData.name);
 
                 _playerInput = GetComponent<PlayerInput>();
                 _playerInput.enabled = true;
@@ -479,5 +489,102 @@ namespace StarterAssets
                 AudioSource.PlayClipAtPoint(LandingAudioClip, transform.TransformPoint(_controller.center), FootstepAudioVolume);
             }
         }
+
+        #region Network Variable On Change Value 
+        public void OnTypeInGameChange(PlayerTypeInGame pre, PlayerTypeInGame current)
+        {
+            this.tag = current.ToString(); /* Police or Thief */
+        }
+        /* Cause I change isImmortal in server so in this func just using for Logging */
+        public void OnIsImmortalChange(bool pre, bool current)
+        {
+            if(!IsOwner) return; /* If it's not owner, do nothing */
+            Debug.Log($"= OnIsImmortalChange Client Name {PlayerName} ID {NetworkManager.LocalClientId} change isImmortal from {pre.ToString()} to {current.ToString()}");
+        }
+
+        #endregion
+
+        #region  Game Logic 
+        /* Listen event TouchThief and ready to make notify to server know that I've catched a thief */
+        public void OnTouchThief(NetCodeThirdPersonController target)
+        {
+            Debug.Log($"= Event OnTouchThief : I'm {PlayerName} - ID {OwnerClientId} and I catched a thief has name is {target.PlayerName} - ID: {target.OwnerClientId}");
+
+            /* Call to ServerRpc to notify excute explosion effect for all clients */
+            OnPoliceCatchedThiefServerRpc(target.OwnerClientId);
+        }
+        public IEnumerator IESetImmortalFalse(NetCodeThirdPersonController targetPlayer, float delay)
+        {
+            Debug.Log($"= IESetImmortalFalse Client Name {targetPlayer.PlayerName} Id {targetPlayer.OwnerClientId} start Coroutine change isImmortal to false");
+            yield return new WaitForSeconds(delay);
+            targetPlayer.isImmortal.Value = false;
+
+        }
+        public IEnumerator IEDespawnNetworkObject(float delay, GameObject target)
+        {
+            yield return new WaitForSeconds(delay);
+            Destroy(target);
+
+        }
+        #endregion
+        #region ServerRpc function
+        [ServerRpc(RequireOwnership = false)]
+        public void OnPoliceCatchedThiefServerRpc(ulong targetClientId, ServerRpcParams serverRpcParams = default)
+        {
+            var clientId = serverRpcParams.Receive.SenderClientId;
+            Debug.Log($"= OnPoliceCatchedThiefServerRpc : Client : {serverRpcParams.Receive.SenderClientId} has sent to ServerRpc target to ClientID : {targetClientId}");
+            /* Option 1: Spawn on server */
+            // GameObject explosionVfx = Instantiate(PLaySceneManager.Instance.explosionBoomPrefab);
+            // explosionVfx.GetComponent<NetworkObject>().Spawn();
+            // explosionVfx.transform.position = NetworkManager.Singleton.ConnectedClients[targetClientId].PlayerObject.transform.position;
+
+            /* Option 2: Notify for all client know where explosion happend and act it on client */
+            ShowExplosionEffectInClientRpc(targetClientId);
+
+            /* Make thief immortal for a time */
+            ClientRpcParams clientRpcParams = new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = new ulong[] { targetClientId }
+                }
+            };
+
+            /* Set target Client immortal in some seconds */
+            NetCodeThirdPersonController targetPlayer = NetworkManager.Singleton.ConnectedClients[targetClientId].PlayerObject.GetComponent<NetCodeThirdPersonController>();
+            targetPlayer.isImmortal.Value = true;
+            StartCoroutine(IESetImmortalFalse(targetPlayer, 3f));
+        }
+
+        #endregion
+        #region ClientRpc function
+        [ClientRpc]
+        private void SetIsImmortalClientRpc(bool value, ClientRpcParams clientRpcParams = default)
+        {
+            /* If IsOwner so this func will exceute right on ServerRpc, so don't need run more time */
+            Debug.Log($"= SetIsImmortalClientRpc This Player {PlayerName} has ID : Local CLientID  {NetworkManager.LocalClientId}");
+
+            Debug.Log($"= SetIsImmortalClientRpc 2 This Player {PlayerName} has SetIsImmortal to {value.ToString()}");
+            isImmortal.Value = value;
+
+        }
+        [ClientRpc]
+        private void ShowExplosionEffectInClientRpc(ulong targetClientId)
+        {
+            /* Receive info from Server and perform explosion in client */
+            GameObject explosionVfx = Instantiate(PLaySceneManager.Instance.explosionBoomPrefab);
+            explosionVfx.transform.position = PLaySceneManager.Instance.PlayersList[targetClientId].gameObject.transform.position;
+            /* I've set auto destroy this particle system when it's done.  */
+
+            /* Check if  */
+            if (OwnerClientId == targetClientId)
+            {
+
+            }
+        }
+        #endregion
+        #region Event Function
+
+        #endregion
     }
 }

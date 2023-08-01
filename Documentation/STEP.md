@@ -253,4 +253,133 @@ private NetworkVariable<PlayerTypeInGame> typeInGame = new NetworkVariable<Playe
             }
 ```
 
+============================ LOGIC POLICE TOUCH THIEF ================= 
+## Logic Police touch Thief : Show effect, count points, make thief immortar some seconds when get touched by Police : 
+### Add Event Manager to manage all events in game : 
+- Add script EventManager.cs in first scene and tick isPersistance for DontDestroyOnLoad. Add EventName TouchThief and we'll use it later.
+Note that you should go Project Setting > Script Excecute Order and set timing for EventManager running first/before. 
+- To check Police have touched thief or not, I've set the tag for particular player with their role. 
+- In Third Person Controller, we have to check collide in BasicRigidBodyPush.cs that attach in Player Prefab. 
+- In BasicRigidBodyPush.cs, create or adjust OnControllerColliderHit if it's exist like below : 
+```c# 
+    private void OnControllerColliderHit(ControllerColliderHit hit){
+        ...
+        /* If not police, dont check collide */
+        /* If not police, dont check collide */
+        if (this.gameObject.tag != Constants.TAG_POLICE) return;
+
+		/* If you are Police, let's check what you touch */
+        if (hit.gameObject.tag == Constants.TAG_THIEF)
+        {
+            /* Touched to Thief , let's do something */
+			NetCodeThirdPersonController target = hit.gameObject.GetComponent<NetCodeThirdPersonController>();
+			Debug.Log("Touch to Thief : IsImmortal : " + target.IsImmortal.ToString());
+			/* Firstly check if this thief is in immortal state -> do nothing
+			If are playing as normal, trigger event that police touch this thief and do some logic */
+			if(!target.IsImmortal){
+				/* Call func ON Touch Thief. */
+				this.gameObject.GetComponent<NetCodeThirdPersonController>().OnTouchThief(target);
+				
+			}
+			
+        }
+    }
+```
+- Ok so here, we sent event to this player know that they're touching thief and idetity of that thief via NetCodeThirdPersonController target variable. 
+- In NetCodeThirdPersonController.cs, we add some codes : 
+```c# 
+
+        #region  Game Logic 
+        /* Listen event TouchThief and ready to make notify to server know that I've catched a thief */
+        public void OnTouchThief(NetCodeThirdPersonController target)
+        {
+            Debug.Log($"= Event OnTouchThief : I'm {PlayerName} - ID {OwnerClientId} and I catched a thief has name is {target.PlayerName} - ID: {target.OwnerClientId}");
+
+            /* Call to ServerRpc to notify excute explosion effect for all clients */
+            OnPoliceCatchedThiefServerRpc(target.OwnerClientId);
+        }
+```
+- OK greate. Now you can start running 2 Instance game as Police and thief, and whenever Police touch to Thief, in log you'll see something like this : "= Event OnTouchThief : I'm Luuna - ID 1 and I catched a thief has name is Luuna - ID: 1" -> Notify the information that's what I need to next step.
+### Show prefab explosion and notify ServerRpc so that all clients are aware that someone has been caught: 
+- OnTouchThief we've created above, I'll call a ServerRpc to notyfy excecute explostion for all clients : 
+```c# 
+    public void OnTouchThief(Dictionary<string, object> msg){
+        ...
+        /* Call to ServerRpc to notify excute explosion effect for all clients */
+            OnPoliceCatchedThiefServerRpc(OwnerClientId, target.OwnerClientId);
+    }
+```
+- Create func OnPoliceCatchedThiefServerRpc like this: 
+```c# 
+    [ServerRpc]
+        public void OnPoliceCatchedThiefServerRpc(ulong fromClientId, ulong targetClientId, ServerRpcParams serverRpcParams = default){
+            /* We have 2 ways to this thing : Choose one and comment the other one */
+            
+            /* Option 1: Spawn on server, so all clients automacally spawn this effect : But got error when you trying destroy this object from clients */
+            GameObject explosionVfx = Instantiate(PLaySceneManager.Instance.explosionBoomPrefab);
+            explosionVfx.GetComponent<NetworkObject>().Spawn();
+            explosionVfx.transform.position = NetworkManager.Singleton.ConnectedClients[targetClientId].PlayerObject.transform.position;
+
+            /* Option 2: Notify for all client know where explosion happend and act it on client : So you can control and destroy this object */
+            ShowExplosionEffectInClientRpc(targetClientId);
+        }
+```
+- In this video I'll using option 2 because the explosion it's just to show vfx and not affect to logic/points or something important. 
+- So continously create ShowExplosionEffectInClientRpc to receive notify from ServerRpc : 
+```c# 
+        [ClientRpc]
+        public void ShowExplosionEffectInClientRpc(ulong targetClientId){
+            /* Receive info from Server and perform explosion in client */
+            GameObject explosionVfx = Instantiate(PLaySceneManager.Instance.explosionBoomPrefab);
+            explosionVfx.transform.position = PLaySceneManager.Instance.PlayersList[targetClientId].gameObject.transform.position;
+            /* I've set auto destroy this particle system when it's done.  */
+        }
+```
+- It's maybe ok rn. Let's run 2 instance game and check collide between police and thief.
+
+### Make game logic IsImmortal for Thief in 3 seconds when have been caught by Police : 
+- Create variable isImmortal : 
+```c# 
+    [Tooltip("isImmortal : true -> police cannot catch this thief when touch. This variable just change on ServerRpc. Don't trust client")]
+        private NetworkVariable<bool> isImmortal = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+        public bool IsImmortal { get { return isImmortal.Value; } }
+```
+- Listen event when isImmortal value changed in OnNetworkSpawn and OnNetworkDespawn : 
+```c# 
+        base.OnNetworkSpawn();
+        isImmortal.OnValueChanged += OnIsImmortalChange;
+        ...
+        base.OnNetworkDespawn();
+        isImmortal.OnValueChanged -= OnIsImmortalChange;
+
+        /* Cause I change isImmortal in server so in this func just using for Logging */
+        public void OnIsImmortalChange(bool pre, bool current)
+        {   
+            if(!IsOwner) return; /* If it's not owner, do nothing */
+            Debug.Log($"= OnIsImmortalChange Client Name {PlayerName} ID {NetworkManager.LocalClientId} change isImmortal from {pre.ToString()} to {current.ToString()}");
+        }
+```
+- Now it's time to detech when we should change isImmortal value. This will be change in server when target thief got caught. Get back to func OnPoliceCatchedThiefServerRpc(), add the line make target thief immortal for some seconds : 
+```c# 
+    public void OnPoliceCatchedThiefServerRpc(ulong targetClientId, ServerRpcParams serverRpcParams = default){
+        ...
+            /* Set target Client immortal in some seconds */
+            NetCodeThirdPersonController targetPlayer = NetworkManager.Singleton.ConnectedClients[targetClientId].PlayerObject.GetComponent<NetCodeThirdPersonController>();
+            targetPlayer.isImmortal.Value = true;
+            StartCoroutine(IESetImmortalFalse(targetPlayer, 3f)); /* delay 3 seconds before change isImmortal to false */
+    }
+    public IEnumerator IESetImmortalFalse(NetCodeThirdPersonController targetPlayer, float delay)
+    {
+        Debug.Log($"= IESetImmortalFalse Client Name {targetPlayer.PlayerName} Id {targetPlayer.OwnerClientId} start Coroutine change isImmortal to false");
+        yield return new WaitForSeconds(delay);
+        targetPlayer.isImmortal.Value = false;
+    }
+``` 
+- Almost done.  Run and check.
+
+
+
+
+
+
 
