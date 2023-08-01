@@ -15,6 +15,11 @@ public class PLaySceneManager : NetworkBehaviour
     [SerializeField] public UICanvasControllerInput uiCanvasControllerInput;
     [SerializeField] public TextMeshProUGUI _playerStatus;
     [SerializeField] public TextMeshProUGUI _amoutPlayerOnline;
+
+    [Header("Logic Game")]
+    [SerializeField] public Transform policeSpawnTransform;
+    [SerializeField] public Transform thiefSpawnTransform;
+
     private NetworkVariable<int> playersInRoom = new NetworkVariable<int>();
     [SerializeField] private TextMeshProUGUI[] listPlayerNameText; 
     public int PlayersInRoom
