@@ -8,9 +8,9 @@ using UnityEngine.SceneManagement;
 using TMPro;
 using Unity.Collections;
 
-public class PLaySceneManager : NetworkBehaviour
+public class PlaySceneManager : NetworkBehaviour
 {
-    public static PLaySceneManager Instance { get; private set; }
+    public static PlaySceneManager Instance { get; private set; }
     [SerializeField] private CinemachineVirtualCamera _playerFollowCamera;
     [SerializeField] public UICanvasControllerInput uiCanvasControllerInput;
     [SerializeField] public TextMeshProUGUI _playerStatus;

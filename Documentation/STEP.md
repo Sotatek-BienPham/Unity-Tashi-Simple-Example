@@ -42,7 +42,7 @@
 
 if (IsLocalPlayer && IsOwner)
             {
-                PLaySceneManager.Instance.PlayerFollowCamera.Follow = CinemachineCameraTarget.transform;
+                PlaySceneManager.Instance.PlayerFollowCamera.Follow = CinemachineCameraTarget.transform;
             }
 ```
 
@@ -166,14 +166,14 @@ public override void OnNetworkSpawn()
                 playerName.Value = new FixedString32Bytes(PlayerDataManager.Instance.playerData.name);
             }
             /* Add new player to list */
-            PLaySceneManager.Instance.PlayersList.Add(this.OwnerClientId, this);
+            PlaySceneManager.Instance.PlayersList.Add(this.OwnerClientId, this);
             StartLocalPlayer();
         }
         public override void OnNetworkDespawn()
         {
             base.OnNetworkDespawn();
             /* Remove player by clientID from list  */
-            PLaySceneManager.Instance.PlayersList.Remove(this.OwnerClientId);
+            PlaySceneManager.Instance.PlayersList.Remove(this.OwnerClientId);
         }
 ```
 - And so on, in PlaySceneManager listPlayer will update automacally when has change. You cound use this player list to show List Player in game (about name, hp, score or st);
@@ -238,7 +238,7 @@ private NetworkVariable<PlayerTypeInGame> typeInGame = new NetworkVariable<Playe
         { /* Remove listen when OnNetworkDespawn */
             base.OnNetworkDespawn();
             typeInGame.OnValueChanged -= OnTypeInGameChange;
-            PLaySceneManager.Instance.PlayersList.Remove(this.OwnerClientId);
+            PlaySceneManager.Instance.PlayersList.Remove(this.OwnerClientId);
         }
 ```
 - Make something diff between Police and Thief, basiclly change text color for simple example, so when set playerNameText, I change the color also in Update(): 
@@ -316,7 +316,7 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
             /* We have 2 ways to this thing : Choose one and comment the other one */
             
             /* Option 1: Spawn on server, so all clients automacally spawn this effect : But got error when you trying destroy this object from clients */
-            GameObject explosionVfx = Instantiate(PLaySceneManager.Instance.explosionBoomPrefab);
+            GameObject explosionVfx = Instantiate(PlaySceneManager.Instance.explosionBoomPrefab);
             explosionVfx.GetComponent<NetworkObject>().Spawn();
             explosionVfx.transform.position = NetworkManager.Singleton.ConnectedClients[targetClientId].PlayerObject.transform.position;
 
@@ -330,8 +330,8 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
         [ClientRpc]
         public void ShowExplosionEffectInClientRpc(ulong targetClientId){
             /* Receive info from Server and perform explosion in client */
-            GameObject explosionVfx = Instantiate(PLaySceneManager.Instance.explosionBoomPrefab);
-            explosionVfx.transform.position = PLaySceneManager.Instance.PlayersList[targetClientId].gameObject.transform.position;
+            GameObject explosionVfx = Instantiate(PlaySceneManager.Instance.explosionBoomPrefab);
+            explosionVfx.transform.position = PlaySceneManager.Instance.PlayersList[targetClientId].gameObject.transform.position;
             /* I've set auto destroy this particle system when it's done.  */
         }
 ```

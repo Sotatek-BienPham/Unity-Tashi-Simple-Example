@@ -211,17 +211,17 @@ namespace StarterAssets
                 {
                     typeInGame.Value = PlayerTypeInGame.Police;
                     this.tag = Constants.TAG_POLICE;
-                    this.transform.position = PLaySceneManager.Instance.policeSpawnTransform.position;
+                    this.transform.position = PlaySceneManager.Instance.policeSpawnTransform.position;
                 }
                 else
                 {
                     typeInGame.Value = PlayerTypeInGame.Thief;
                     this.tag = Constants.TAG_THIEF;
-                    this.transform.position = PLaySceneManager.Instance.thiefSpawnTransform.position;
+                    this.transform.position = PlaySceneManager.Instance.thiefSpawnTransform.position;
                 }
             }
 
-            PLaySceneManager.Instance.PlayersList.Add(this.OwnerClientId, this);
+            PlaySceneManager.Instance.PlayersList.Add(this.OwnerClientId, this);
             StartLocalPlayer();
         }
 
@@ -230,7 +230,7 @@ namespace StarterAssets
             base.OnNetworkDespawn();
             typeInGame.OnValueChanged -= OnTypeInGameChange;
             isImmortal.OnValueChanged -= OnIsImmortalChange;
-            PLaySceneManager.Instance.PlayersList.Remove(this.OwnerClientId);
+            PlaySceneManager.Instance.PlayersList.Remove(this.OwnerClientId);
         }
         protected void StartLocalPlayer()
         {
@@ -241,9 +241,9 @@ namespace StarterAssets
 
                 _playerInput = GetComponent<PlayerInput>();
                 _playerInput.enabled = true;
-                PLaySceneManager.Instance.PlayerFollowCamera.Follow = CinemachineCameraTarget.transform;
+                PlaySceneManager.Instance.PlayerFollowCamera.Follow = CinemachineCameraTarget.transform;
                 _input = GetComponent<StarterAssetsInputs>();
-                PLaySceneManager.Instance.uiCanvasControllerInput.starterAssetsInputs = _input;
+                PlaySceneManager.Instance.uiCanvasControllerInput.starterAssetsInputs = _input;
             }
         }
 
@@ -541,7 +541,7 @@ namespace StarterAssets
             NetCodeThirdPersonController senderPlayer = NetworkManager.Singleton.ConnectedClients[clientId].PlayerObject.GetComponent<NetCodeThirdPersonController>();
             Debug.Log($"= OnPoliceCatchedThiefServerRpc : Client : {serverRpcParams.Receive.SenderClientId} has sent to ServerRpc target to ClientID : {targetClientId}");
             /* Option 1: Spawn on server */
-            // GameObject explosionVfx = Instantiate(PLaySceneManager.Instance.explosionBoomPrefab);
+            // GameObject explosionVfx = Instantiate(PlaySceneManager.Instance.explosionBoomPrefab);
             // explosionVfx.GetComponent<NetworkObject>().Spawn();
             // explosionVfx.transform.position = NetworkManager.Singleton.ConnectedClients[targetClientId].PlayerObject.transform.position;
 
@@ -583,8 +583,8 @@ namespace StarterAssets
         private void ShowExplosionEffectInClientRpc(ulong targetClientId)
         {
             /* Receive info from Server and perform explosion in client */
-            GameObject explosionVfx = Instantiate(PLaySceneManager.Instance.explosionBoomPrefab);
-            explosionVfx.transform.position = PLaySceneManager.Instance.PlayersList[targetClientId].gameObject.transform.position;
+            GameObject explosionVfx = Instantiate(PlaySceneManager.Instance.explosionBoomPrefab);
+            explosionVfx.transform.position = PlaySceneManager.Instance.PlayersList[targetClientId].gameObject.transform.position;
             /* I've set auto destroy this particle system when it's done.  */
 
             /* Check if  */
