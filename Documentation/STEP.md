@@ -378,6 +378,35 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
 - Almost done.  Run and check.
 
 
+### Logic count points : Increase/Decrease Point when Police touched Thief : 
+- According my point of view, I think have 2 ways : change point and update in Update() or change point and listen OnValueChange to update UI. I use first way. 
+- Declare 'Point' variable to store the point of each player  : 
+```c# 
+       /* Point to count the game logic : Police touch thief -> police's point ++ , thief's point -- */
+        private NetworkVariable<int> point = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+        public int Point {
+            get { return point.Value;}
+        }
+```
+- When Police touched Thief, make some login in ServerRpc, and in here, we calc the point (Increase Police's Point and Decrease Thief's point) like below : 
+```c# 
+        [ServerRpc(RequireOwnership = false)]
+        public void OnPoliceCatchedThiefServerRpc(ulong targetClientId, ServerRpcParams serverRpcParams = default){
+        ...
+        /* Logic Increase Police's point, Decrease Thief's point */
+            targetPlayer.point.Value --;
+            senderPlayer.point.Value ++;
+
+        }
+```
+- So now go back to PlaySceneManager and add the text point into table list Player. This table'll reload every update by change this line become : 
+```c# 
+    ...
+    listPlayerNameText[i].text = string.Format("#{0}: {3} - {1} - ID : {2} - P : {4}", i+1, player.Value.PlayerName, player.Key.ToString(), player.Value.TypeInGame.ToString(), player.Value.Point);
+```
+
+
+
 
 
 

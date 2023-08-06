@@ -36,6 +36,12 @@ namespace StarterAssets
         {
             get { return typeInGame.Value; }
         }
+        /* Point to count the game logic : Police touch thief -> police's point ++ , thief's point -- */
+        private NetworkVariable<int> point = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+        public int Point {
+            get { return point.Value;}
+        }
+
         public TextMeshPro playerNameText;
         [Tooltip("Move speed of the character in m/s")]
         public float MoveSpeed = 2.0f;
@@ -532,6 +538,7 @@ namespace StarterAssets
         public void OnPoliceCatchedThiefServerRpc(ulong targetClientId, ServerRpcParams serverRpcParams = default)
         {
             var clientId = serverRpcParams.Receive.SenderClientId;
+            NetCodeThirdPersonController senderPlayer = NetworkManager.Singleton.ConnectedClients[clientId].PlayerObject.GetComponent<NetCodeThirdPersonController>();
             Debug.Log($"= OnPoliceCatchedThiefServerRpc : Client : {serverRpcParams.Receive.SenderClientId} has sent to ServerRpc target to ClientID : {targetClientId}");
             /* Option 1: Spawn on server */
             // GameObject explosionVfx = Instantiate(PLaySceneManager.Instance.explosionBoomPrefab);
@@ -554,6 +561,10 @@ namespace StarterAssets
             NetCodeThirdPersonController targetPlayer = NetworkManager.Singleton.ConnectedClients[targetClientId].PlayerObject.GetComponent<NetCodeThirdPersonController>();
             targetPlayer.isImmortal.Value = true;
             StartCoroutine(IESetImmortalFalse(targetPlayer, 3f));
+
+            /* Logic Increase Police's point, Decrease Thief's point */
+            targetPlayer.point.Value --;
+            senderPlayer.point.Value ++;
         }
 
         #endregion
