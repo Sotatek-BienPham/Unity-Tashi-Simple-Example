@@ -405,7 +405,64 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
     listPlayerNameText[i].text = string.Format("#{0}: {3} - {1} - ID : {2} - P : {4}", i+1, player.Value.PlayerName, player.Key.ToString(), player.Value.TypeInGame.ToString(), player.Value.Point);
 ```
 
+### Logic Spawn Bonus in-game : Police Bonus and Thief Bonus Point : 
+- Police bonus has green color. When Police touch Police Bonus, their speed 'll increase. 
+- Thief Bonus Point has red color. When Thief touch Thief Bonus, their point'll increase. 
 
+- Create GameObject such as cube, and custom shape to what you like. For me, I custom that cube into item : change color,  animation turning around itself, add Tag Police Bonus/Thief Bonus, set IsTrigger in Box Collider, change scale, change rotation, add Network Object component. 
+- Drag it into prefabs in Resources folder. add to Network Prefabs List. 
+- Add logic check Player collide with Bonus in NetcodeThirdPersonController.cs : 
+```c#
+        void OnTriggerEnter(Collider other)
+        {
+            Debug.Log("== OnTriggerEnter with : " + other.gameObject.tag);
+        }
+```
+
+- Create list Spawn Bonus Point in Play Scene : I'll randomly spawn Bonus prefabs in that list position.
+- Create ArrayList to store list spawn point that I've created before. 
+```c# 
+    [SerializeField] private Transform[] listSpawnBonusPosition; /* List positions could be choose for spawn new Bonus */
+    [SerializeField] private GameObject policeBonusPrefab; /* Drag prefab refer to here */
+    [SerializeField] private GameObject thiefBonusPrefab; /* Drag prefab refer to here */
+    [SerializeField] private int maxPoliceBonus;  /* Max Police Bonus could be spawn in game */
+    [SerializeField] private int maxThiefBonus; /* Max Thief Bonus could be spawn in game */
+    private List<GameObject> listPoliceBonusSpawned = new List<GameObject>(); /* Store List Police Bonus are spawned in game */
+    private List<GameObject> listThiefBonusSpawned = new List<GameObject>(); /* Store List Thief Bonus are spawned in game */
+```
+- When Start() PlaySceneManager, check if Server so SpawnBonus in map : 
+```c# 
+    void Start(){
+    ...
+        if(IsServer){
+                SpawnBonusPrefabServerRpc(); 
+        }
+    ...
+    }
+    #region ServerRPC 
+    [ServerRpc]
+    private void SpawnBonusPrefabServerRpc(){
+        Debug.Log("= SpawnBonusPrefabServerRpc");
+
+        /* Spawn Police Bonus Prefab */
+        GameObject bonusP = Instantiate(policeBonusPrefab, listSpawnBonusPosition[Random.Range(0, listSpawnBonusPosition.Length)].position, Quaternion.identity);
+        bonusP.transform.position += new Vector3(Random.Range(-1f, 1f), 1f, Random.Range(-1f,1f));
+        bonusP.GetComponent<NetworkObject>().Spawn();
+        listPoliceBonusSpawned.Add(bonusP);
+
+        /* Spawn Police Bonus Prefab */
+        GameObject bonusT = Instantiate(thiefBonusPrefab, listSpawnBonusPosition[Random.Range(0, listSpawnBonusPosition.Length)].position, Quaternion.identity);
+        bonusT.transform.position += new Vector3(Random.Range(-1f, 1f), 1f, Random.Range(-1f,1f));
+        bonusT.GetComponent<NetworkObject>().Spawn();
+        listThiefBonusSpawned.Add(bonusT);
+    }
+    [ServerRpc]
+    private void PoliceTouchedPoliceBonusServerRpc(ServerRpcParams serverRpcParams = default){
+        var senderId = serverRpcParams.Receive.SenderClientId;
+        Debug.Log($"= PoliceTouchedPoliceBonusServerRpc: SenderID {senderId} touched ");
+    }
+    #endregion
+```
 
 
 

@@ -10,6 +10,7 @@ public class BasicRigidBodyPush : MonoBehaviour
 
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
+        // Debug.Log("== OnControllerColliderHit with : " + hit.gameObject.tag);
         if (canPush) PushRigidBodies(hit);
 		/* If not police, dont check collide */
         if (this.gameObject.tag != Constants.TAG_POLICE) return;
@@ -19,7 +20,7 @@ public class BasicRigidBodyPush : MonoBehaviour
         {
             /* Touched to Thief , let's do something */
 			NetCodeThirdPersonController target = hit.gameObject.GetComponent<NetCodeThirdPersonController>();
-			Debug.Log("Touch to Thief : IsImmortal : " + target.IsImmortal.ToString());
+			// Debug.Log("Touch to Thief : IsImmortal : " + target.IsImmortal.ToString());
 			/* Firstly check if this thief is in immortal state -> do nothing
 			If are playing as normal, trigger event that police touch this thief and do some logic */
 			if(target.IsImmortal == false){

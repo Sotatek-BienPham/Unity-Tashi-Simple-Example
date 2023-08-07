@@ -7,6 +7,7 @@ using StarterAssets;
 using UnityEngine.SceneManagement;
 using TMPro;
 using Unity.Collections;
+using Random = UnityEngine.Random;
 
 public class PlaySceneManager : NetworkBehaviour
 {
@@ -17,6 +18,13 @@ public class PlaySceneManager : NetworkBehaviour
     [SerializeField] public TextMeshProUGUI _amoutPlayerOnline;
 
     [Header("Logic Game")]
+    [SerializeField] private Transform[] listSpawnBonusPosition; /* List positions could be choose for spawn new Bonus */
+    [SerializeField] private GameObject policeBonusPrefab; 
+    [SerializeField] private GameObject thiefBonusPrefab; 
+    [SerializeField] private int maxPoliceBonus;  /* Max Police Bonus could be spawn in game */
+    [SerializeField] private int maxThiefBonus; /* Max Thief Bonus could be spawn in game */
+    private List<GameObject> listPoliceBonusSpawned = new List<GameObject>(); /* Store List Police Bonus are spawned in game */
+    private List<GameObject> listThiefBonusSpawned = new List<GameObject>(); /* Store List Thief Bonus are spawned in game */
     [SerializeField] public Transform policeSpawnTransform;
     [SerializeField] public Transform thiefSpawnTransform;
     [SerializeField] public GameObject explosionBoomPrefab;
@@ -60,10 +68,15 @@ public class PlaySceneManager : NetworkBehaviour
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
         NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
 
+        Debug.Log($"= Start PlaySceneManager : ClientID : {OwnerClientId} IsServer : " + IsServer.ToString());
+        if(IsServer){
+            SpawnBonusPrefabServerRpc(); 
+        }
     }
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
+        Debug.Log($"= PlaySceneManager ClientID : {OwnerClientId} OnNetworkSpawn");
         if(IsServer){
             playersInRoom.Value ++;
         }
@@ -129,4 +142,28 @@ public class PlaySceneManager : NetworkBehaviour
             Destroy(NetworkManager.Singleton.gameObject);
         }
     }
+
+    #region ServerRPC 
+    [ServerRpc]
+    private void SpawnBonusPrefabServerRpc(){
+        Debug.Log("= SpawnBonusPrefabServerRpc");
+
+        /* Spawn Police Bonus Prefab */
+        GameObject bonusP = Instantiate(policeBonusPrefab, listSpawnBonusPosition[Random.Range(0, listSpawnBonusPosition.Length)].position, Quaternion.identity);
+        bonusP.transform.position += new Vector3(Random.Range(-1f, 1f), 1f, Random.Range(-1f,1f));
+        bonusP.GetComponent<NetworkObject>().Spawn();
+        listPoliceBonusSpawned.Add(bonusP);
+
+        /* Spawn Police Bonus Prefab */
+        GameObject bonusT = Instantiate(thiefBonusPrefab, listSpawnBonusPosition[Random.Range(0, listSpawnBonusPosition.Length)].position, Quaternion.identity);
+        bonusT.transform.position += new Vector3(Random.Range(-1f, 1f), 1f, Random.Range(-1f,1f));
+        bonusT.GetComponent<NetworkObject>().Spawn();
+        listThiefBonusSpawned.Add(bonusT);
+    }
+    [ServerRpc]
+    private void PoliceTouchedPoliceBonusServerRpc(ServerRpcParams serverRpcParams = default){
+        var senderId = serverRpcParams.Receive.SenderClientId;
+        Debug.Log($"= PoliceTouchedPoliceBonusServerRpc: SenderID {senderId} touched ");
+    }
+    #endregion
 }

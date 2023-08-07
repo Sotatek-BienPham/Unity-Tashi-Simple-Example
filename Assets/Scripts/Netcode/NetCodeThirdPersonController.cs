@@ -38,8 +38,9 @@ namespace StarterAssets
         }
         /* Point to count the game logic : Police touch thief -> police's point ++ , thief's point -- */
         private NetworkVariable<int> point = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-        public int Point {
-            get { return point.Value;}
+        public int Point
+        {
+            get { return point.Value; }
         }
 
         public TextMeshPro playerNameText;
@@ -159,7 +160,7 @@ namespace StarterAssets
                     return false;
                 }
 #else
-				return false;
+                return false;
 #endif
             }
         }
@@ -504,7 +505,7 @@ namespace StarterAssets
         /* Cause I change isImmortal in server so in this func just using for Logging */
         public void OnIsImmortalChange(bool pre, bool current)
         {
-            if(!IsOwner) return; /* If it's not owner, do nothing */
+            if (!IsOwner) return; /* If it's not owner, do nothing */
             Debug.Log($"= OnIsImmortalChange Client Name {PlayerName} ID {NetworkManager.LocalClientId} change isImmortal from {pre.ToString()} to {current.ToString()}");
         }
 
@@ -563,8 +564,8 @@ namespace StarterAssets
             StartCoroutine(IESetImmortalFalse(targetPlayer, 3f));
 
             /* Logic Increase Police's point, Decrease Thief's point */
-            targetPlayer.point.Value --;
-            senderPlayer.point.Value ++;
+            targetPlayer.point.Value--;
+            senderPlayer.point.Value++;
         }
 
         #endregion
@@ -597,5 +598,14 @@ namespace StarterAssets
         #region Event Function
 
         #endregion
+
+        /// <summary>
+        /// OnTriggerEnter is called when the Collider other enters the trigger.
+        /// </summary>
+        /// <param name="other">The other Collider involved in this collision.</param>
+        void OnTriggerEnter(Collider other)
+        {
+            Debug.Log("== OnTriggerEnter with : " + other.gameObject.tag);
+        }
     }
 }
