@@ -14,8 +14,8 @@
 - Create empty GameObject, add Network Manager component : Choose Transport protocol, drag player prefab and setup network prefabs lists.
 - Choose Tashi Network Transport : Fill setup for relay base url or not. 
 - Create in UI some buttons such as Start Server, Start Host and Start Client. Each button will call the function corresponding to function in Network Manager. 
-- Create empty GameObject and attach new script to manage this scene. Script maybe have name like PlaySceneManager.cs 
-- Open PlaySceneManager.cs and add some basically func : Start Host, Start Server, Start Client. using Unity.NetCode to use NetworkManager.Singleton or get info about NetCode.
+- Create empty GameObject and attach new script to manage this scene. Script maybe have name like PlayManager.cs 
+- Open PlayManager.cs and add some basically func : Start Host, Start Server, Start Client. using Unity.NetCode to use NetworkManager.Singleton or get info about NetCode.
 - Add onClick for 3 button that we created before
 - In Player Prefabs : Add component Network Object, Network Transform, Network Animation .. for sync some basic info. 
 - Here I override Network Transform and Animation to Client Network Transform, Client Network Animation to turn off authoriatative from server. Trust on your clients.
@@ -25,7 +25,7 @@
 ## Setup Player : Move, control 
 * Target : Setup for control right client owned, camera follow client owned. 
 - In Third Person Control : In Update > Check if(!IsOwner) return; so if you're not owner of this client, you can control. 
-- In PlaySceneManager.cs, create variable for PlayerFollowCamera, refer it from editor or load from script : 
+- In PlayManager.cs, create variable for PlayerFollowCamera, refer it from editor or load from script : 
 ```c# 
 [SerializeField] private CinemachineVirtualCamera _playerFollowCamera;
     public CinemachineVirtualCamera PlayerFollowCamera { 
@@ -42,7 +42,7 @@
 
 if (IsLocalPlayer && IsOwner)
             {
-                PlaySceneManager.Instance.PlayerFollowCamera.Follow = CinemachineCameraTarget.transform;
+                PlayManager.Instance.PlayerFollowCamera.Follow = CinemachineCameraTarget.transform;
             }
 ```
 
@@ -150,7 +150,7 @@ So I found a simple way to set player name for each player :
         playerNameText.text = PlayerName;
 
 ## Manager List Player Network in Play Scene Manager :
-- In PlaySceneManager.cs, create variable store player network spawned : 
+- In PlayManager.cs, create variable store player network spawned : 
 ```c# 
     Dictionary<ulong, NetCodeThirdPersonController> playersList = new Dictionary<ulong, NetCodeThirdPersonController>();
     public Dictionary<ulong, NetCodeThirdPersonController> PlayersList { get => playersList; }
@@ -166,14 +166,14 @@ public override void OnNetworkSpawn()
                 playerName.Value = new FixedString32Bytes(PlayerDataManager.Instance.playerData.name);
             }
             /* Add new player to list */
-            PlaySceneManager.Instance.PlayersList.Add(this.OwnerClientId, this);
+            PlayManager.Instance.PlayersList.Add(this.OwnerClientId, this);
             StartLocalPlayer();
         }
         public override void OnNetworkDespawn()
         {
             base.OnNetworkDespawn();
             /* Remove player by clientID from list  */
-            PlaySceneManager.Instance.PlayersList.Remove(this.OwnerClientId);
+            PlayManager.Instance.PlayersList.Remove(this.OwnerClientId);
         }
 ```
 - And so on, in PlaySceneManager listPlayer will update automacally when has change. You cound use this player list to show List Player in game (about name, hp, score or st);
@@ -238,7 +238,7 @@ private NetworkVariable<PlayerTypeInGame> typeInGame = new NetworkVariable<Playe
         { /* Remove listen when OnNetworkDespawn */
             base.OnNetworkDespawn();
             typeInGame.OnValueChanged -= OnTypeInGameChange;
-            PlaySceneManager.Instance.PlayersList.Remove(this.OwnerClientId);
+            PlayManager.Instance.PlayersList.Remove(this.OwnerClientId);
         }
 ```
 - Make something diff between Police and Thief, basiclly change text color for simple example, so when set playerNameText, I change the color also in Update(): 
@@ -316,7 +316,7 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
             /* We have 2 ways to this thing : Choose one and comment the other one */
             
             /* Option 1: Spawn on server, so all clients automacally spawn this effect : But got error when you trying destroy this object from clients */
-            GameObject explosionVfx = Instantiate(PlaySceneManager.Instance.explosionBoomPrefab);
+            GameObject explosionVfx = Instantiate(PlayManager.Instance.explosionBoomPrefab);
             explosionVfx.GetComponent<NetworkObject>().Spawn();
             explosionVfx.transform.position = NetworkManager.Singleton.ConnectedClients[targetClientId].PlayerObject.transform.position;
 
@@ -330,8 +330,8 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
         [ClientRpc]
         public void ShowExplosionEffectInClientRpc(ulong targetClientId){
             /* Receive info from Server and perform explosion in client */
-            GameObject explosionVfx = Instantiate(PlaySceneManager.Instance.explosionBoomPrefab);
-            explosionVfx.transform.position = PlaySceneManager.Instance.PlayersList[targetClientId].gameObject.transform.position;
+            GameObject explosionVfx = Instantiate(PlayManager.Instance.explosionBoomPrefab);
+            explosionVfx.transform.position = PlayManager.Instance.PlayersList[targetClientId].gameObject.transform.position;
             /* I've set auto destroy this particle system when it's done.  */
         }
 ```
@@ -411,11 +411,28 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
 
 - Create GameObject such as cube, and custom shape to what you like. For me, I custom that cube into item : change color,  animation turning around itself, add Tag Police Bonus/Thief Bonus, set IsTrigger in Box Collider, change scale, change rotation, add Network Object component. 
 - Drag it into prefabs in Resources folder. add to Network Prefabs List. 
+- Create BonusItem.cs to identity Bonus Prefab, it's include BonusData attribute. Add this script into Bonus prefab and define suiable params.
+```c# 
+    [Serializable]
+    public class BonusData { 
+        /* Type of this bonus is using for what character : Police or Thief */
+        public BonusType bonusType = BonusType.Police;
+        /* This value using to represents the value of increase and decrease. eg: Police speed increase [value], Thief increase point equal [value] */
+        public float value = 1f;
+    }
+```
 - Add logic check Player collide with Bonus in NetcodeThirdPersonController.cs : 
 ```c#
         void OnTriggerEnter(Collider other)
         {
-            Debug.Log("== OnTriggerEnter with : " + other.gameObject.tag);
+            /* If not Owner, don't do anything. If not add this line, other client in your side also come here */
+            if(!IsOwner) return;
+            
+            var target = other.GetComponent<BonusItem>();
+            /* Check if collide with gameobject has script BonusItem : */
+            if(target){
+                Debug.Log("== OnTriggerEnter with Bonus Item: " + target.bonusData.bonusType);
+            }
         }
 ```
 
@@ -423,14 +440,14 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
 - Create ArrayList to store list spawn point that I've created before. 
 ```c# 
     [SerializeField] private Transform[] listSpawnBonusPosition; /* List positions could be choose for spawn new Bonus */
-    [SerializeField] private GameObject policeBonusPrefab; /* Drag prefab refer to here */
-    [SerializeField] private GameObject thiefBonusPrefab; /* Drag prefab refer to here */
+    [SerializeField] private GameObject policeBonusPrefab; 
+    [SerializeField] private GameObject thiefBonusPrefab; 
     [SerializeField] private int maxPoliceBonus;  /* Max Police Bonus could be spawn in game */
     [SerializeField] private int maxThiefBonus; /* Max Thief Bonus could be spawn in game */
-    private List<GameObject> listPoliceBonusSpawned = new List<GameObject>(); /* Store List Police Bonus are spawned in game */
-    private List<GameObject> listThiefBonusSpawned = new List<GameObject>(); /* Store List Thief Bonus are spawned in game */
+    private List<ulong> listPoliceBonusIdSpawned = new List<ulong>(); /* Store List Police Bonus are spawned in game */
+    private List<ulong> listThiefBonusIdSpawned = new List<ulong>(); /* Store List Thief Bonus are spawned in game */
 ```
-- When Start() PlaySceneManager, check if Server so SpawnBonus in map : 
+- When Start() PlaySceneManager, check if Server so SpawnBonus in map. After spawned object, don't forget save networkObjectId into list it's helpful for client identity gameobject : 
 ```c# 
     void Start(){
     ...
@@ -447,14 +464,16 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
         /* Spawn Police Bonus Prefab */
         GameObject bonusP = Instantiate(policeBonusPrefab, listSpawnBonusPosition[Random.Range(0, listSpawnBonusPosition.Length)].position, Quaternion.identity);
         bonusP.transform.position += new Vector3(Random.Range(-1f, 1f), 1f, Random.Range(-1f,1f));
-        bonusP.GetComponent<NetworkObject>().Spawn();
-        listPoliceBonusSpawned.Add(bonusP);
+        NetworkObject bonusPoliceNetworkObj = bonusP.GetComponent<NetworkObject>();
+        bonusPoliceNetworkObj.Spawn();
+        listPoliceBonusIdSpawned.Add(bonusPoliceNetworkObj.NetworkObjectId);
 
         /* Spawn Police Bonus Prefab */
         GameObject bonusT = Instantiate(thiefBonusPrefab, listSpawnBonusPosition[Random.Range(0, listSpawnBonusPosition.Length)].position, Quaternion.identity);
         bonusT.transform.position += new Vector3(Random.Range(-1f, 1f), 1f, Random.Range(-1f,1f));
-        bonusT.GetComponent<NetworkObject>().Spawn();
-        listThiefBonusSpawned.Add(bonusT);
+        NetworkObject bonusThiefNetworkObj = bonusT.GetComponent<NetworkObject>();
+        bonusThiefNetworkObj.Spawn();
+        listThiefBonusIdSpawned.Add(bonusThiefNetworkObj.NetworkObjectId);
     }
     [ServerRpc]
     private void PoliceTouchedPoliceBonusServerRpc(ServerRpcParams serverRpcParams = default){
@@ -463,6 +482,8 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
     }
     #endregion
 ```
+
+- 
 
 
 

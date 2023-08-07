@@ -9,9 +9,9 @@ using TMPro;
 using Unity.Collections;
 using Random = UnityEngine.Random;
 
-public class PlaySceneManager : NetworkBehaviour
+public class PlayManager : NetworkBehaviour
 {
-    public static PlaySceneManager Instance { get; private set; }
+    public static PlayManager Instance { get; private set; }
     [SerializeField] private CinemachineVirtualCamera _playerFollowCamera;
     [SerializeField] public UICanvasControllerInput uiCanvasControllerInput;
     [SerializeField] public TextMeshProUGUI _playerStatus;
@@ -23,8 +23,8 @@ public class PlaySceneManager : NetworkBehaviour
     [SerializeField] private GameObject thiefBonusPrefab; 
     [SerializeField] private int maxPoliceBonus;  /* Max Police Bonus could be spawn in game */
     [SerializeField] private int maxThiefBonus; /* Max Thief Bonus could be spawn in game */
-    private List<GameObject> listPoliceBonusSpawned = new List<GameObject>(); /* Store List Police Bonus are spawned in game */
-    private List<GameObject> listThiefBonusSpawned = new List<GameObject>(); /* Store List Thief Bonus are spawned in game */
+    private List<ulong> listPoliceBonusIdSpawned = new List<ulong>(); /* Store List Police Bonus are spawned in game */
+    private List<ulong> listThiefBonusIdSpawned = new List<ulong>(); /* Store List Thief Bonus are spawned in game */
     [SerializeField] public Transform policeSpawnTransform;
     [SerializeField] public Transform thiefSpawnTransform;
     [SerializeField] public GameObject explosionBoomPrefab;
@@ -151,14 +151,16 @@ public class PlaySceneManager : NetworkBehaviour
         /* Spawn Police Bonus Prefab */
         GameObject bonusP = Instantiate(policeBonusPrefab, listSpawnBonusPosition[Random.Range(0, listSpawnBonusPosition.Length)].position, Quaternion.identity);
         bonusP.transform.position += new Vector3(Random.Range(-1f, 1f), 1f, Random.Range(-1f,1f));
-        bonusP.GetComponent<NetworkObject>().Spawn();
-        listPoliceBonusSpawned.Add(bonusP);
+        NetworkObject bonusPoliceNetworkObj = bonusP.GetComponent<NetworkObject>();
+        bonusPoliceNetworkObj.Spawn();
+        listPoliceBonusIdSpawned.Add(bonusPoliceNetworkObj.NetworkObjectId);
 
         /* Spawn Police Bonus Prefab */
         GameObject bonusT = Instantiate(thiefBonusPrefab, listSpawnBonusPosition[Random.Range(0, listSpawnBonusPosition.Length)].position, Quaternion.identity);
         bonusT.transform.position += new Vector3(Random.Range(-1f, 1f), 1f, Random.Range(-1f,1f));
-        bonusT.GetComponent<NetworkObject>().Spawn();
-        listThiefBonusSpawned.Add(bonusT);
+        NetworkObject bonusThiefNetworkObj = bonusT.GetComponent<NetworkObject>();
+        bonusThiefNetworkObj.Spawn();
+        listThiefBonusIdSpawned.Add(bonusThiefNetworkObj.NetworkObjectId);
     }
     [ServerRpc]
     private void PoliceTouchedPoliceBonusServerRpc(ServerRpcParams serverRpcParams = default){

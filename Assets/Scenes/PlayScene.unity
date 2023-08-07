@@ -561,7 +561,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 976825807}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: PLaySceneManager, Assembly-CSharp
         m_MethodName: StartServer
         m_Mode: 1
@@ -1978,7 +1978,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 976825807}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: PLaySceneManager, Assembly-CSharp
         m_MethodName: StartClient
         m_Mode: 1
@@ -2419,7 +2419,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 976825807}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: PLaySceneManager, Assembly-CSharp
         m_MethodName: StartHost
         m_Mode: 1
@@ -2478,8 +2478,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 976825806}
-  - component: {fileID: 976825807}
   - component: {fileID: 976825808}
+  - component: {fileID: 976825809}
   m_Layer: 0
   m_Name: == Play Scene Manager
   m_TagString: Untagged
@@ -2502,46 +2502,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 8
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &976825807
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 976825805}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bb5c98fe0f75945888898d7a85679695, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _playerFollowCamera: {fileID: 464496592}
-  uiCanvasControllerInput: {fileID: 1645078204}
-  _playerStatus: {fileID: 695060809}
-  _amoutPlayerOnline: {fileID: 1363838005}
-  listSpawnBonusPosition:
-  - {fileID: 794303591}
-  - {fileID: 1182660659}
-  - {fileID: 1333209203}
-  - {fileID: 1782441141}
-  policeBonusPrefab: {fileID: 7012763515924561090, guid: a73351c17463748819684cac2361d2e9,
-    type: 3}
-  thiefBonusPrefab: {fileID: 1429966355689167963, guid: b9880e78b2db8444ea948d2f058f3148,
-    type: 3}
-  maxPoliceBonus: 2
-  maxThiefBonus: 2
-  policeSpawnTransform: {fileID: 2145456461}
-  thiefSpawnTransform: {fileID: 191781286}
-  explosionBoomPrefab: {fileID: 1892078723244562, guid: 16c0837f972ea4b0ba606b94222c4e00,
-    type: 3}
-  listPlayerNameText:
-  - {fileID: 1802167159}
-  - {fileID: 1311098790}
-  - {fileID: 1050023306}
-  - {fileID: 1492649823}
-  - {fileID: 700919256}
-  - {fileID: 437755948}
-  - {fileID: 1191573503}
-  - {fileID: 642418849}
 --- !u!114 &976825808
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2562,6 +2522,46 @@ MonoBehaviour:
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
+--- !u!114 &976825809
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 976825805}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84b62846549064ad4b5017f1d4cd8a01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _playerFollowCamera: {fileID: 464496592}
+  uiCanvasControllerInput: {fileID: 1645078204}
+  _playerStatus: {fileID: 695060809}
+  _amoutPlayerOnline: {fileID: 1363838005}
+  listSpawnBonusPosition:
+  - {fileID: 794303591}
+  - {fileID: 1182660659}
+  - {fileID: 1333209203}
+  - {fileID: 1782441141}
+  policeBonusPrefab: {fileID: 7012763515924561090, guid: a73351c17463748819684cac2361d2e9,
+    type: 3}
+  thiefBonusPrefab: {fileID: 1429966355689167963, guid: b9880e78b2db8444ea948d2f058f3148,
+    type: 3}
+  maxPoliceBonus: 2
+  maxThiefBonus: 2
+  policeSpawnTransform: {fileID: 2145456461}
+  thiefSpawnTransform: {fileID: 2145456461}
+  explosionBoomPrefab: {fileID: 1892078723244562, guid: 16c0837f972ea4b0ba606b94222c4e00,
+    type: 3}
+  listPlayerNameText:
+  - {fileID: 1802167159}
+  - {fileID: 1311098790}
+  - {fileID: 1050023306}
+  - {fileID: 1492649823}
+  - {fileID: 700919256}
+  - {fileID: 437755948}
+  - {fileID: 1191573503}
+  - {fileID: 642418849}
 --- !u!1 &1028513131
 GameObject:
   m_ObjectHideFlags: 0
@@ -4961,7 +4961,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 976825807}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: PLaySceneManager, Assembly-CSharp
         m_MethodName: DisconnectClient
         m_Mode: 1

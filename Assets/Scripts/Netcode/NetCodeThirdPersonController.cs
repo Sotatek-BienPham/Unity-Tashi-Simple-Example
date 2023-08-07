@@ -212,17 +212,17 @@ namespace StarterAssets
                 {
                     typeInGame.Value = PlayerTypeInGame.Police;
                     this.tag = Constants.TAG_POLICE;
-                    this.transform.position = PlaySceneManager.Instance.policeSpawnTransform.position;
+                    this.transform.position = PlayManager.Instance.policeSpawnTransform.position;
                 }
                 else
                 {
                     typeInGame.Value = PlayerTypeInGame.Thief;
                     this.tag = Constants.TAG_THIEF;
-                    this.transform.position = PlaySceneManager.Instance.thiefSpawnTransform.position;
+                    this.transform.position = PlayManager.Instance.thiefSpawnTransform.position;
                 }
             }
 
-            PlaySceneManager.Instance.PlayersList.Add(this.OwnerClientId, this);
+            PlayManager.Instance.PlayersList.Add(this.OwnerClientId, this);
             StartLocalPlayer();
         }
 
@@ -231,7 +231,7 @@ namespace StarterAssets
             base.OnNetworkDespawn();
             typeInGame.OnValueChanged -= OnTypeInGameChange;
             isImmortal.OnValueChanged -= OnIsImmortalChange;
-            PlaySceneManager.Instance.PlayersList.Remove(this.OwnerClientId);
+            PlayManager.Instance.PlayersList.Remove(this.OwnerClientId);
         }
         protected void StartLocalPlayer()
         {
@@ -242,9 +242,9 @@ namespace StarterAssets
 
                 _playerInput = GetComponent<PlayerInput>();
                 _playerInput.enabled = true;
-                PlaySceneManager.Instance.PlayerFollowCamera.Follow = CinemachineCameraTarget.transform;
+                PlayManager.Instance.PlayerFollowCamera.Follow = CinemachineCameraTarget.transform;
                 _input = GetComponent<StarterAssetsInputs>();
-                PlaySceneManager.Instance.uiCanvasControllerInput.starterAssetsInputs = _input;
+                PlayManager.Instance.uiCanvasControllerInput.starterAssetsInputs = _input;
             }
         }
 
@@ -542,7 +542,7 @@ namespace StarterAssets
             NetCodeThirdPersonController senderPlayer = NetworkManager.Singleton.ConnectedClients[clientId].PlayerObject.GetComponent<NetCodeThirdPersonController>();
             Debug.Log($"= OnPoliceCatchedThiefServerRpc : Client : {serverRpcParams.Receive.SenderClientId} has sent to ServerRpc target to ClientID : {targetClientId}");
             /* Option 1: Spawn on server */
-            // GameObject explosionVfx = Instantiate(PlaySceneManager.Instance.explosionBoomPrefab);
+            // GameObject explosionVfx = Instantiate(PlayManager.Instance.explosionBoomPrefab);
             // explosionVfx.GetComponent<NetworkObject>().Spawn();
             // explosionVfx.transform.position = NetworkManager.Singleton.ConnectedClients[targetClientId].PlayerObject.transform.position;
 
@@ -584,8 +584,8 @@ namespace StarterAssets
         private void ShowExplosionEffectInClientRpc(ulong targetClientId)
         {
             /* Receive info from Server and perform explosion in client */
-            GameObject explosionVfx = Instantiate(PlaySceneManager.Instance.explosionBoomPrefab);
-            explosionVfx.transform.position = PlaySceneManager.Instance.PlayersList[targetClientId].gameObject.transform.position;
+            GameObject explosionVfx = Instantiate(PlayManager.Instance.explosionBoomPrefab);
+            explosionVfx.transform.position = PlayManager.Instance.PlayersList[targetClientId].gameObject.transform.position;
             /* I've set auto destroy this particle system when it's done.  */
 
             /* Check if  */
@@ -605,7 +605,13 @@ namespace StarterAssets
         /// <param name="other">The other Collider involved in this collision.</param>
         void OnTriggerEnter(Collider other)
         {
-            Debug.Log("== OnTriggerEnter with : " + other.gameObject.tag);
+            /* If not Owner, don't do anything. If not add this line, other client in your side also come here */
+            if(!IsOwner) return;
+            
+            var target = other.GetComponent<BonusItem>();
+            if(target){
+                Debug.Log("== OnTriggerEnter with : " + target.bonusData.bonusType);
+            }
         }
     }
 }
