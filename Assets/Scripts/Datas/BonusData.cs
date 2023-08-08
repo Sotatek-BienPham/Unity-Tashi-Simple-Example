@@ -7,5 +7,5 @@ public class BonusData {
     /* Type of this bonus is using for what character : Police or Thief */
     public BonusType bonusType = BonusType.Police;
     /* This value using to represents the value of increase and decrease. eg: Police speed increase [value], Thief increase point equal [value] */
-    public float value = 1f;
+    public int value = 1;
 }

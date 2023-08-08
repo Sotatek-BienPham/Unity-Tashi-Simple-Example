@@ -186,6 +186,14 @@ public class PlayManager : NetworkBehaviour
         listPoliceBonusIdSpawned.Remove(bonusId); /* Remove from list */
         bonusItem.Despawn(); /* Despawn on Server : apply for all clients */
         SpawnBonusPrefabServerRpc(); /* Re-calc and spawn bonus item if posible */
+
+        /* Increase Point for Police */
+        NetCodeThirdPersonController sender = PlayersList[senderId];
+        if(sender != null){
+            sender.point.Value += bonusItem.GetComponent<BonusItem>().bonusData.value;
+        }
+        
+
     }
     [ServerRpc(RequireOwnership = false)]
     public void ThiefTouchedThiefBonusServerRpc(ulong bonusId, ServerRpcParams serverRpcParams = default)
@@ -198,6 +206,12 @@ public class PlayManager : NetworkBehaviour
         listThiefBonusIdSpawned.Remove(bonusId); /* Remove from list */
         bonusItem.Despawn(); /* Despawn on Server : apply for all clients */
         SpawnBonusPrefabServerRpc(); /* Re-calc and spawn bonus item if posible */
+
+        /* Increase Point for Thief */
+        NetCodeThirdPersonController sender = PlayersList[senderId];
+        if(sender != null){
+            sender.point.Value += bonusItem.GetComponent<BonusItem>().bonusData.value;
+        }
     }
     #endregion
 }

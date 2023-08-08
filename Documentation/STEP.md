@@ -418,7 +418,7 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
         /* Type of this bonus is using for what character : Police or Thief */
         public BonusType bonusType = BonusType.Police;
         /* This value using to represents the value of increase and decrease. eg: Police speed increase [value], Thief increase point equal [value] */
-        public float value = 1f;
+        public int value = 1;
     }
 ```
 - Add logic check Player collide with Bonus in NetcodeThirdPersonController.cs, Police just can collide with Police's Bonus, Thief collide with Thief's Bonus : 
@@ -519,6 +519,20 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
 ```
 
 - Don't forget add RequireOwnership = false, so when client touch bonus can call to ServerRpc. 
+
+### Change a bit logic when touch Bonus : Increase their Point : 
+- For more simplier game play, so I've changed logic game when Police/Thief touched their Bonus Item, so I'll increase their Point : Add these lines to func touched Bonus in server : 
+```c# 
+        /* Increase Point for Police */
+        NetCodeThirdPersonController sender = PlayersList[senderId];
+        if(sender != null){
+            sender.point.Value += bonusItem.GetComponent<BonusItem>().bonusData.value;
+        }
+```
+- Get back to Play Scene and adjust max bonus can spawn of police, reduce it to smaller than max bonus can spawn of thief for balance game I think so because when Police touched Thief, Thief's point decrease and Police's point increase also. 
+- OK So we're basically done game logic, so host and client can go into a room and chasing each other, take the bonus, get the point and let's see who has the best point when end the game. 
+
+
 
 
 

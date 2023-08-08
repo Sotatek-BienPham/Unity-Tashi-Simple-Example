@@ -2558,7 +2558,7 @@ MonoBehaviour:
     type: 3}
   thiefBonusPrefab: {fileID: 1429966355689167963, guid: b9880e78b2db8444ea948d2f058f3148,
     type: 3}
-  maxPoliceBonus: 5
+  maxPoliceBonus: 3
   maxThiefBonus: 5
   policeSpawnTransform: {fileID: 2145456461}
   thiefSpawnTransform: {fileID: 191781286}
@@ -4972,8 +4972,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: PLaySceneManager, Assembly-CSharp
+      - m_Target: {fileID: 976825809}
+        m_TargetAssemblyTypeName: PlayManager, Assembly-CSharp
         m_MethodName: DisconnectClient
         m_Mode: 1
         m_Arguments:

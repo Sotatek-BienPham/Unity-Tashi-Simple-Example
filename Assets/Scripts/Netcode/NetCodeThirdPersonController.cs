@@ -37,7 +37,7 @@ namespace StarterAssets
             get { return typeInGame.Value; }
         }
         /* Point to count the game logic : Police touch thief -> police's point ++ , thief's point -- */
-        private NetworkVariable<int> point = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+        public NetworkVariable<int> point = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
         public int Point
         {
             get { return point.Value; }
