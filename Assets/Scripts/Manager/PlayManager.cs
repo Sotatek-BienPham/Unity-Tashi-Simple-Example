@@ -19,8 +19,8 @@ public class PlayManager : NetworkBehaviour
 
     [Header("Logic Game")]
     [SerializeField] private Transform[] listSpawnBonusPosition; /* List positions could be choose for spawn new Bonus */
-    [SerializeField] private GameObject policeBonusPrefab; 
-    [SerializeField] private GameObject thiefBonusPrefab; 
+    [SerializeField] private GameObject policeBonusPrefab;
+    [SerializeField] private GameObject thiefBonusPrefab;
     [SerializeField] private int maxPoliceBonus;  /* Max Police Bonus could be spawn in game */
     [SerializeField] private int maxThiefBonus; /* Max Thief Bonus could be spawn in game */
     private List<ulong> listPoliceBonusIdSpawned = new List<ulong>(); /* Store List Police Bonus are spawned in game */
@@ -30,7 +30,7 @@ public class PlayManager : NetworkBehaviour
     [SerializeField] public GameObject explosionBoomPrefab;
 
     private NetworkVariable<int> playersInRoom = new NetworkVariable<int>();
-    [SerializeField] private TextMeshProUGUI[] listPlayerNameText; 
+    [SerializeField] private TextMeshProUGUI[] listPlayerNameText;
     public int PlayersInRoom
     {
         get { return playersInRoom.Value; }
@@ -60,7 +60,8 @@ public class PlayManager : NetworkBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        foreach(TextMeshProUGUI item in listPlayerNameText){
+        foreach (TextMeshProUGUI item in listPlayerNameText)
+        {
             item.gameObject.SetActive(false);
         }
         _playerStatus.text = PlayerDataManager.Instance.playerData.status.ToString();
@@ -69,16 +70,18 @@ public class PlayManager : NetworkBehaviour
         NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
 
         Debug.Log($"= Start PlaySceneManager : ClientID : {OwnerClientId} IsServer : " + IsServer.ToString());
-        if(IsServer){
-            SpawnBonusPrefabServerRpc(); 
+        if (IsServer)
+        {
+            SpawnBonusPrefabServerRpc();
         }
     }
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
         Debug.Log($"= PlaySceneManager ClientID : {OwnerClientId} OnNetworkSpawn");
-        if(IsServer){
-            playersInRoom.Value ++;
+        if (IsServer)
+        {
+            playersInRoom.Value++;
         }
     }
     private void OnClientConnected(ulong clientId)
@@ -102,16 +105,19 @@ public class PlayManager : NetworkBehaviour
     void Update()
     {
         _amoutPlayerOnline.text = PlayersInRoom.ToString();
-        int i = 0 ;
-        foreach(KeyValuePair<ulong, NetCodeThirdPersonController> player in PlayersList){
+        int i = 0;
+        foreach (KeyValuePair<ulong, NetCodeThirdPersonController> player in PlayersList)
+        {
             // Debug.LogWarning($"= Client ID {player.Key} has Name {player.Value.PlayerName}");
-            if(i <= listPlayerNameText.Length){
-                listPlayerNameText[i].text = string.Format("#{0}: {3} - {1} - ID : {2} - P : {4}", i+1, player.Value.PlayerName, player.Key.ToString(), player.Value.TypeInGame.ToString(), player.Value.Point);
+            if (i <= listPlayerNameText.Length)
+            {
+                listPlayerNameText[i].text = string.Format("#{0}: {3} - {1} - ID : {2} - P : {4}", i + 1, player.Value.PlayerName, player.Key.ToString(), player.Value.TypeInGame.ToString(), player.Value.Point);
                 listPlayerNameText[i].gameObject.SetActive(true);
                 i++;
             }
         }
-        for(int j = i; j <= listPlayerNameText.Length - 1; j++){
+        for (int j = i; j <= listPlayerNameText.Length - 1; j++)
+        {
             listPlayerNameText[j].gameObject.SetActive(false);
         }
     }
@@ -144,28 +150,54 @@ public class PlayManager : NetworkBehaviour
     }
 
     #region ServerRPC 
-    [ServerRpc]
-    private void SpawnBonusPrefabServerRpc(){
+    [ServerRpc(RequireOwnership = false)]
+    private void SpawnBonusPrefabServerRpc()
+    {
         Debug.Log("= SpawnBonusPrefabServerRpc");
 
-        /* Spawn Police Bonus Prefab */
-        GameObject bonusP = Instantiate(policeBonusPrefab, listSpawnBonusPosition[Random.Range(0, listSpawnBonusPosition.Length)].position, Quaternion.identity);
-        bonusP.transform.position += new Vector3(Random.Range(-1f, 1f), 1f, Random.Range(-1f,1f));
-        NetworkObject bonusPoliceNetworkObj = bonusP.GetComponent<NetworkObject>();
-        bonusPoliceNetworkObj.Spawn();
-        listPoliceBonusIdSpawned.Add(bonusPoliceNetworkObj.NetworkObjectId);
+        while (listPoliceBonusIdSpawned.Count < maxPoliceBonus)
+        {
+            /* Spawn Police Bonus Prefab */
+            GameObject bonusP = Instantiate(policeBonusPrefab, listSpawnBonusPosition[Random.Range(0, listSpawnBonusPosition.Length)].position, Quaternion.identity);
+            bonusP.transform.position += new Vector3(Random.Range(-1f, 1f), 1f, Random.Range(-1f, 1f));
+            NetworkObject bonusPoliceNetworkObj = bonusP.GetComponent<NetworkObject>();
+            bonusPoliceNetworkObj.Spawn();
+            listPoliceBonusIdSpawned.Add(bonusPoliceNetworkObj.NetworkObjectId);
+        }
 
-        /* Spawn Police Bonus Prefab */
-        GameObject bonusT = Instantiate(thiefBonusPrefab, listSpawnBonusPosition[Random.Range(0, listSpawnBonusPosition.Length)].position, Quaternion.identity);
-        bonusT.transform.position += new Vector3(Random.Range(-1f, 1f), 1f, Random.Range(-1f,1f));
-        NetworkObject bonusThiefNetworkObj = bonusT.GetComponent<NetworkObject>();
-        bonusThiefNetworkObj.Spawn();
-        listThiefBonusIdSpawned.Add(bonusThiefNetworkObj.NetworkObjectId);
+        while (listThiefBonusIdSpawned.Count < maxPoliceBonus)
+        {
+            /* Spawn Police Bonus Prefab */
+            GameObject bonusT = Instantiate(thiefBonusPrefab, listSpawnBonusPosition[Random.Range(0, listSpawnBonusPosition.Length)].position, Quaternion.identity);
+            bonusT.transform.position += new Vector3(Random.Range(-1f, 1f), 1f, Random.Range(-1f, 1f));
+            NetworkObject bonusThiefNetworkObj = bonusT.GetComponent<NetworkObject>();
+            bonusThiefNetworkObj.Spawn();
+            listThiefBonusIdSpawned.Add(bonusThiefNetworkObj.NetworkObjectId);
+        }
     }
-    [ServerRpc]
-    private void PoliceTouchedPoliceBonusServerRpc(ServerRpcParams serverRpcParams = default){
+    [ServerRpc(RequireOwnership = false)]
+    public void PoliceTouchedPoliceBonusServerRpc(ulong bonusId, ServerRpcParams serverRpcParams = default)
+    {
         var senderId = serverRpcParams.Receive.SenderClientId;
-        Debug.Log($"= PoliceTouchedPoliceBonusServerRpc: SenderID {senderId} touched ");
+        Debug.Log($"= PoliceTouchedPoliceBonusServerRpc: SenderID {senderId} touched BonusId : {bonusId}");
+        /* Player touched Bonus Item : Add Bonus Value, Despawn and Spawn new bonus Item in other place after a time  */
+        /* Get bonus object spawned by id */
+        NetworkObject bonusItem = NetworkManager.Singleton.SpawnManager.SpawnedObjects[bonusId];
+        listPoliceBonusIdSpawned.Remove(bonusId); /* Remove from list */
+        bonusItem.Despawn(); /* Despawn on Server : apply for all clients */
+        SpawnBonusPrefabServerRpc(); /* Re-calc and spawn bonus item if posible */
+    }
+    [ServerRpc(RequireOwnership = false)]
+    public void ThiefTouchedThiefBonusServerRpc(ulong bonusId, ServerRpcParams serverRpcParams = default)
+    {
+        var senderId = serverRpcParams.Receive.SenderClientId;
+        Debug.Log($"= ThiefTouchedThiefBonusServerRpc: SenderID {senderId} touched BonusId : {bonusId}");
+        /* Thief touched Bonus Item : Add More points, Despawn and Spawn new bonus Item in other place after a time  */
+        /* Get bonus object spawned by id */
+        NetworkObject bonusItem = NetworkManager.Singleton.SpawnManager.SpawnedObjects[bonusId];
+        listThiefBonusIdSpawned.Remove(bonusId); /* Remove from list */
+        bonusItem.Despawn(); /* Despawn on Server : apply for all clients */
+        SpawnBonusPrefabServerRpc(); /* Re-calc and spawn bonus item if posible */
     }
     #endregion
 }

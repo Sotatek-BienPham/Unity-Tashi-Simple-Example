@@ -421,17 +421,26 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
         public float value = 1f;
     }
 ```
-- Add logic check Player collide with Bonus in NetcodeThirdPersonController.cs : 
+- Add logic check Player collide with Bonus in NetcodeThirdPersonController.cs, Police just can collide with Police's Bonus, Thief collide with Thief's Bonus : 
 ```c#
         void OnTriggerEnter(Collider other)
         {
             /* If not Owner, don't do anything. If not add this line, other client in your side also come here */
             if(!IsOwner) return;
             
-            var target = other.GetComponent<BonusItem>();
-            /* Check if collide with gameobject has script BonusItem : */
-            if(target){
-                Debug.Log("== OnTriggerEnter with Bonus Item: " + target.bonusData.bonusType);
+            BonusItem target = other.GetComponent<BonusItem>();
+            
+            /* if This is Police and touch to Police Bonus */
+            if(target && target.bonusData.bonusType == BonusType.Police && TypeInGame == PlayerTypeInGame.Police){
+                ulong bonusId = target.GetComponent<NetworkObject>().NetworkObjectId;
+                Debug.Log($"== OnTriggerEnter with : {target.bonusData.bonusType} has NetworkObjectId : {bonusId}");
+                PlayManager.Instance.PoliceTouchedPoliceBonusServerRpc(bonusId);
+            }
+            /* if This is Thief and touch to Thief Bonus */
+            if(target && target.bonusData.bonusType == BonusType.Thief && TypeInGame == PlayerTypeInGame.Thief){
+                ulong bonusId = target.GetComponent<NetworkObject>().NetworkObjectId;
+                Debug.Log($"== OnTriggerEnter with : {target.bonusData.bonusType} has NetworkObjectId : {bonusId}");
+                PlayManager.Instance.ThiefTouchedThiefBonusServerRpc(bonusId);
             }
         }
 ```
@@ -447,7 +456,7 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
     private List<ulong> listPoliceBonusIdSpawned = new List<ulong>(); /* Store List Police Bonus are spawned in game */
     private List<ulong> listThiefBonusIdSpawned = new List<ulong>(); /* Store List Thief Bonus are spawned in game */
 ```
-- When Start() PlaySceneManager, check if Server so SpawnBonus in map. After spawned object, don't forget save networkObjectId into list it's helpful for client identity gameobject : 
+- When Start() PlaySceneManager, check if Server so SpawnBonus in map. After spawned object, don't forget save networkObjectId into list it's helpful for client identity gameobject. Then create func call when Police or Thief touched on their bonus, so I'll increase point, remove this bonusId from listBonusId, despawn this bonus and Call func to re-calculator spawn bonus in map: 
 ```c# 
     void Start(){
     ...
@@ -457,33 +466,59 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
     ...
     }
     #region ServerRPC 
-    [ServerRpc]
-    private void SpawnBonusPrefabServerRpc(){
+    [ServerRpc(RequireOwnership = false)]
+    private void SpawnBonusPrefabServerRpc()
+    {
         Debug.Log("= SpawnBonusPrefabServerRpc");
 
-        /* Spawn Police Bonus Prefab */
-        GameObject bonusP = Instantiate(policeBonusPrefab, listSpawnBonusPosition[Random.Range(0, listSpawnBonusPosition.Length)].position, Quaternion.identity);
-        bonusP.transform.position += new Vector3(Random.Range(-1f, 1f), 1f, Random.Range(-1f,1f));
-        NetworkObject bonusPoliceNetworkObj = bonusP.GetComponent<NetworkObject>();
-        bonusPoliceNetworkObj.Spawn();
-        listPoliceBonusIdSpawned.Add(bonusPoliceNetworkObj.NetworkObjectId);
+        while (listPoliceBonusIdSpawned.Count < maxPoliceBonus)
+        {
+            /* Spawn Police Bonus Prefab */
+            GameObject bonusP = Instantiate(policeBonusPrefab, listSpawnBonusPosition[Random.Range(0, listSpawnBonusPosition.Length)].position, Quaternion.identity);
+            bonusP.transform.position += new Vector3(Random.Range(-1f, 1f), 1f, Random.Range(-1f, 1f));
+            NetworkObject bonusPoliceNetworkObj = bonusP.GetComponent<NetworkObject>();
+            bonusPoliceNetworkObj.Spawn();
+            listPoliceBonusIdSpawned.Add(bonusPoliceNetworkObj.NetworkObjectId);
+        }
 
-        /* Spawn Police Bonus Prefab */
-        GameObject bonusT = Instantiate(thiefBonusPrefab, listSpawnBonusPosition[Random.Range(0, listSpawnBonusPosition.Length)].position, Quaternion.identity);
-        bonusT.transform.position += new Vector3(Random.Range(-1f, 1f), 1f, Random.Range(-1f,1f));
-        NetworkObject bonusThiefNetworkObj = bonusT.GetComponent<NetworkObject>();
-        bonusThiefNetworkObj.Spawn();
-        listThiefBonusIdSpawned.Add(bonusThiefNetworkObj.NetworkObjectId);
+        while (listThiefBonusIdSpawned.Count < maxPoliceBonus)
+        {
+            /* Spawn Police Bonus Prefab */
+            GameObject bonusT = Instantiate(thiefBonusPrefab, listSpawnBonusPosition[Random.Range(0, listSpawnBonusPosition.Length)].position, Quaternion.identity);
+            bonusT.transform.position += new Vector3(Random.Range(-1f, 1f), 1f, Random.Range(-1f, 1f));
+            NetworkObject bonusThiefNetworkObj = bonusT.GetComponent<NetworkObject>();
+            bonusThiefNetworkObj.Spawn();
+            listThiefBonusIdSpawned.Add(bonusThiefNetworkObj.NetworkObjectId);
+        }
     }
-    [ServerRpc]
-    private void PoliceTouchedPoliceBonusServerRpc(ServerRpcParams serverRpcParams = default){
+    [ServerRpc(RequireOwnership = false)]
+    public void PoliceTouchedPoliceBonusServerRpc(ulong bonusId, ServerRpcParams serverRpcParams = default)
+    {
         var senderId = serverRpcParams.Receive.SenderClientId;
-        Debug.Log($"= PoliceTouchedPoliceBonusServerRpc: SenderID {senderId} touched ");
+        Debug.Log($"= PoliceTouchedPoliceBonusServerRpc: SenderID {senderId} touched BonusId : {bonusId}");
+        /* Player touched Bonus Item : Add Bonus Value, Despawn and Spawn new bonus Item in other place after a time  */
+        /* Get bonus object spawned by id */
+        NetworkObject bonusItem = NetworkManager.Singleton.SpawnManager.SpawnedObjects[bonusId];
+        listPoliceBonusIdSpawned.Remove(bonusId); /* Remove from list */
+        bonusItem.Despawn(); /* Despawn on Server : apply for all clients */
+        SpawnBonusPrefabServerRpc(); /* Re-calc and spawn bonus item if posible */
+    }
+    [ServerRpc(RequireOwnership = false)]
+    public void ThiefTouchedThiefBonusServerRpc(ulong bonusId, ServerRpcParams serverRpcParams = default)
+    {
+        var senderId = serverRpcParams.Receive.SenderClientId;
+        Debug.Log($"= ThiefTouchedThiefBonusServerRpc: SenderID {senderId} touched BonusId : {bonusId}");
+        /* Thief touched Bonus Item : Add More points, Despawn and Spawn new bonus Item in other place after a time  */
+        /* Get bonus object spawned by id */
+        NetworkObject bonusItem = NetworkManager.Singleton.SpawnManager.SpawnedObjects[bonusId];
+        listThiefBonusIdSpawned.Remove(bonusId); /* Remove from list */
+        bonusItem.Despawn(); /* Despawn on Server : apply for all clients */
+        SpawnBonusPrefabServerRpc(); /* Re-calc and spawn bonus item if posible */
     }
     #endregion
 ```
 
-- 
+- Don't forget add RequireOwnership = false, so when client touch bonus can call to ServerRpc. 
 
 
 

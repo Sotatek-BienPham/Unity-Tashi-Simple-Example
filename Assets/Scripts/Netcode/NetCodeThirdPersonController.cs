@@ -608,9 +608,19 @@ namespace StarterAssets
             /* If not Owner, don't do anything. If not add this line, other client in your side also come here */
             if(!IsOwner) return;
             
-            var target = other.GetComponent<BonusItem>();
-            if(target){
-                Debug.Log("== OnTriggerEnter with : " + target.bonusData.bonusType);
+            BonusItem target = other.GetComponent<BonusItem>();
+            
+            /* if This is Police and touch to Police Bonus */
+            if(target && target.bonusData.bonusType == BonusType.Police && TypeInGame == PlayerTypeInGame.Police){
+                ulong bonusId = target.GetComponent<NetworkObject>().NetworkObjectId;
+                Debug.Log($"== OnTriggerEnter with : {target.bonusData.bonusType} has NetworkObjectId : {bonusId}");
+                PlayManager.Instance.PoliceTouchedPoliceBonusServerRpc(bonusId);
+            }
+            /* if This is Thief and touch to Thief Bonus */
+            if(target && target.bonusData.bonusType == BonusType.Thief && TypeInGame == PlayerTypeInGame.Thief){
+                ulong bonusId = target.GetComponent<NetworkObject>().NetworkObjectId;
+                Debug.Log($"== OnTriggerEnter with : {target.bonusData.bonusType} has NetworkObjectId : {bonusId}");
+                PlayManager.Instance.ThiefTouchedThiefBonusServerRpc(bonusId);
             }
         }
     }

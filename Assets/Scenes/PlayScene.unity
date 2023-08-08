@@ -2543,14 +2543,25 @@ MonoBehaviour:
   - {fileID: 1182660659}
   - {fileID: 1333209203}
   - {fileID: 1782441141}
+  - {fileID: 420860652}
+  - {fileID: 259783629}
+  - {fileID: 1943717568}
+  - {fileID: 678127108}
+  - {fileID: 1450709017}
+  - {fileID: 707452647}
+  - {fileID: 1981136895}
+  - {fileID: 1738750406}
+  - {fileID: 1552160095}
+  - {fileID: 1367452743}
+  - {fileID: 1959574883}
   policeBonusPrefab: {fileID: 7012763515924561090, guid: a73351c17463748819684cac2361d2e9,
     type: 3}
   thiefBonusPrefab: {fileID: 1429966355689167963, guid: b9880e78b2db8444ea948d2f058f3148,
     type: 3}
-  maxPoliceBonus: 2
-  maxThiefBonus: 2
+  maxPoliceBonus: 5
+  maxThiefBonus: 5
   policeSpawnTransform: {fileID: 2145456461}
-  thiefSpawnTransform: {fileID: 2145456461}
+  thiefSpawnTransform: {fileID: 191781286}
   explosionBoomPrefab: {fileID: 1892078723244562, guid: 16c0837f972ea4b0ba606b94222c4e00,
     type: 3}
   listPlayerNameText:
