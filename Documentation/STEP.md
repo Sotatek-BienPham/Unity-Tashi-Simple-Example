@@ -25,6 +25,21 @@
 ## Setup Player : Move, control 
 * Target : Setup for control right client owned, camera follow client owned. 
 - In Third Person Control : In Update > Check if(!IsOwner) return; so if you're not owner of this client, you can control. 
+- In Player Prefabs : Untick Player Input. We'll detect and setup player input for localPlayer(or IsOwner Player) : Call this func when OnNetworkSpawn() : 
+```c# 
+    /* Setup for owner player : Camera, Player Input Movement, ... */
+        protected void StartLocalPlayer()
+        {
+            if (IsClient && IsOwner)
+            {
+                _playerInput = GetComponent<PlayerInput>();
+                _playerInput.enabled = true;
+                PlayManager.Instance.PlayerFollowCamera.Follow = CinemachineCameraTarget.transform;
+                _input = GetComponent<StarterAssetsInputs>();
+                PlayManager.Instance.uiCanvasControllerInput.starterAssetsInputs = _input;
+            }
+        }
+```
 - In PlayManager.cs, create variable for PlayerFollowCamera, refer it from editor or load from script : 
 ```c# 
 [SerializeField] private CinemachineVirtualCamera _playerFollowCamera;

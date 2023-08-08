@@ -233,13 +233,11 @@ namespace StarterAssets
             isImmortal.OnValueChanged -= OnIsImmortalChange;
             PlayManager.Instance.PlayersList.Remove(this.OwnerClientId);
         }
+        /* Setup for owner player : Camera, Player Input Movement, ... */
         protected void StartLocalPlayer()
         {
-
             if (IsClient && IsOwner)
             {
-                // Debug.Log("=== OnNetworkSpawn ID: " + OwnerClientId + " Role : " + (IsHost ? "Host" : "Client") + " . Name : " + PlayerDataManager.Instance.playerData.name);
-
                 _playerInput = GetComponent<PlayerInput>();
                 _playerInput.enabled = true;
                 PlayManager.Instance.PlayerFollowCamera.Follow = CinemachineCameraTarget.transform;
@@ -261,6 +259,9 @@ namespace StarterAssets
             }
             if (IsOwner)
             {
+                if(_playerInput == null){
+                    Debug.LogWarning("= Onwer Player Input Null");
+                }
                 _hasAnimator = TryGetComponent(out _animator);
 
                 JumpAndGravity();
@@ -271,6 +272,7 @@ namespace StarterAssets
 
         private void LateUpdate()
         {
+            if(!IsOwner) return;
             CameraRotation();
         }
 
