@@ -19,21 +19,43 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
     [SerializeField] private TextMeshProUGUI statusText;
     [SerializeField] private Button signInButton;
     private int _clientCount = 0;
-    
+
+    protected override void Awake()
+    {
+        base.Awake();
+        UnityServices.InitializeAsync();
+    }
     void Start()
     {
         string name = PlayerPrefs.GetString(Constants.NAME_PREF, "");
         PlayerDataManager.Instance.SetName(name);
         _nameTextField.text = name;
         /* Listen player name text field value changed */
-        _nameTextField.onValueChanged.AddListener(delegate {OnPlayerNameChange(); });
-
+        _nameTextField.onValueChanged.AddListener(delegate { OnPlayerNameChange(); });
+        CheckAuthentication();
     }
-    public void OnPlayerNameChange(){
+    void CheckAuthentication()
+    {
+        /* Check signed in */
+        if (AuthenticationService.Instance.IsSignedIn)
+        {
+            UpdateStatusText();
+            profileMenu.SetActive(false);
+            lobbyMenu.SetActive(true);
+        }
+        else
+        {
+            profileMenu.SetActive(true);
+            lobbyMenu.SetActive(false);
+        }
+    }
+    public void OnPlayerNameChange()
+    {
         Debug.Log("OnPlayerNameChange : " + _nameTextField.text);
         PlayerDataManager.Instance.SetName(_nameTextField.text);
     }
-    public async void SignInButtonClicked(){
+    public async void SignInButtonClicked()
+    {
         if (string.IsNullOrEmpty(_nameTextField.text))
         {
             Debug.Log($"Signing in with the default profile");
@@ -71,10 +93,11 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
     }
     void UpdateStatusText()
     {
-        if (!string.IsNullOrEmpty(PlayerDataManager.Instance.playerData.id))
+        if (AuthenticationService.Instance.IsSignedIn)
         {
-            statusText.text = $"Signed in as {PlayerDataManager.Instance.playerData.name} (ID:{PlayerDataManager.Instance.playerData.id}) in Lobby";
-            Debug.Log($"= Profile Name {AuthenticationService.Instance.Profile}");
+            statusText.text = $"Signed in as {AuthenticationService.Instance.Profile} (ID:{AuthenticationService.Instance.PlayerId}) in Lobby";
+            // Shows how to get an access token
+            Debug.Log($"Access Token: {AuthenticationService.Instance.AccessToken}");
         }
         else
         {
@@ -92,13 +115,13 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         catch (Exception e)
         {
             Debug.Log(" Excep : " + e);
-            
+
         }
         AsyncOperation progress = SceneManager.LoadSceneAsync(SceneGamePlayName, LoadSceneMode.Single);
 
         progress.completed += (op) =>
         {
-            
+
             PlayerDataManager.Instance.SetStatus(PlayerStatus.InRoom);
             NetworkManager.Singleton.StartHost();
 

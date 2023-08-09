@@ -597,4 +597,26 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
         }
 ```
 - In function, if you lack of what variable, just declare and refers it. 
+- In Awake(), Init Unity Services : 
+```c# 
+    UnityServices.InitializeAsync();
+```
+- For the case comback from Play Scene to Menu Scene, let's check User signed in or not. So in MenuSceneManager,in Start() func call CheckAuthentication() : 
+```c# 
+    void CheckAuthentication()
+    {
+        /* Check signed in */
+        if (AuthenticationService.Instance.IsSignedIn)
+        {
+            UpdateStatusText();
+            profileMenu.SetActive(false);
+            lobbyMenu.SetActive(true);
+        }
+        else
+        {
+            profileMenu.SetActive(true);
+            lobbyMenu.SetActive(false);
+        }
+    }
+```
 
