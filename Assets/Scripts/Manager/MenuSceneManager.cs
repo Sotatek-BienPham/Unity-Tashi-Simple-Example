@@ -10,6 +10,7 @@ using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Lobbies;
 using Random = UnityEngine.Random;
+using Tashi.NetworkTransport;
 
 public class MenuSceneManager : Singleton<MenuSceneManager>
 {
@@ -21,8 +22,8 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
     [SerializeField] private TMP_InputField _nameTextField;
     [SerializeField] private TextMeshProUGUI statusText;
     [SerializeField] private Button signInButton;
-    [Header("Lobby Menu")]
-    // public TashiNetworkTransport NetworkTransport => NetworkManager.Singleton.NetworkConfig.NetworkTransport as TashiNetworkTransport;
+    // [Header("Lobby Menu")]
+    public TashiNetworkTransport NetworkTransport => NetworkManager.Singleton.NetworkConfig.NetworkTransport as TashiNetworkTransport;
     [SerializeField] private TMP_InputField _numberPlayerInRoomTextField;
     [SerializeField] private TMP_InputField _roomCodeToJoinTextField;
     [SerializeField] private Button _createLobbyButton;
@@ -168,56 +169,56 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
 
     }
     public async void CheckLobbyUpdate(){
-        // if(string.IsNullOrEmpty(currentLobbyId)) return;
+        if(string.IsNullOrEmpty(currentLobbyId)) return;
 
-        // if(Time.realtimeSinceStartup >= nextHeartbeat && isLobbyHost){
-        //     nextHeartbeat = Time.realtimeSinceStartup + 15;
-        //     await LobbyServices.Instance.SendHeartbeatPingAsync(currentLobbyId);
-        // }
+        if(Time.realtimeSinceStartup >= nextHeartbeat && isLobbyHost){
+            nextHeartbeat = Time.realtimeSinceStartup + 15;
+            await LobbyService.Instance.SendHeartbeatPingAsync(currentLobbyId);
+        }
 
-        // if(Time.realtimeSinceStartup >= nextLobbyRefresh){
-        //     this.nextLobbyRefresh = Time.realtimeSinceStartup + 2;
-        //     this.LobbyUpdate();
-        //     this.ReceiveIncomingDetail();
-        // }
+        if(Time.realtimeSinceStartup >= nextLobbyRefresh){
+            this.nextLobbyRefresh = Time.realtimeSinceStartup + 2;
+            this.LobbyUpdate();
+            this.ReceiveIncomingDetail();
+        }
     }
     public async void LobbyUpdate(){
-        // var outgoingSessionDetails = NetworkTransport.OutgoingSessionDetails;
+        var outgoingSessionDetails = NetworkTransport.OutgoingSessionDetails;
 
-        // var updatePlayerOptions = new UpdatePlayerOptions();
-        // if (outgoingSessionDetails.AddTo(updatePlayerOptions))
-        // {
-        //     await LobbyService.Instance.UpdatePlayerAsync(currentLobbyId, AuthenticationService.Instance.PlayerId, updatePlayerOptions);
-        // }
+        var updatePlayerOptions = new UpdatePlayerOptions();
+        if (outgoingSessionDetails.AddTo(updatePlayerOptions))
+        {
+            await LobbyService.Instance.UpdatePlayerAsync(currentLobbyId, AuthenticationService.Instance.PlayerId, updatePlayerOptions);
+        }
 
-        // if (isLobbyHost)
-        // {
-        //     var updateLobbyOptions = new UpdateLobbyOptions();
-        //     if (outgoingSessionDetails.AddTo(updateLobbyOptions))
-        //     {
-        //         await LobbyService.Instance.UpdateLobbyAsync(currentLobbyId, updateLobbyOptions);
-        //     }
-        // }
+        if (isLobbyHost)
+        {
+            var updateLobbyOptions = new UpdateLobbyOptions();
+            if (outgoingSessionDetails.AddTo(updateLobbyOptions))
+            {
+                await LobbyService.Instance.UpdateLobbyAsync(currentLobbyId, updateLobbyOptions);
+            }
+        }
     }
     public async void ReceiveIncomingDetail(){
-        // if (NetworkTransport.SessionHasStarted) return;
+        if (NetworkTransport.SessionHasStarted) return;
         
-        // Debug.LogWarning("Receive Incoming Detail");
+        Debug.LogWarning("Receive Incoming Detail");
 
-        // var lobby = await LobbyService.Instance.GetLobbyAsync(currentLobbyId);
-        // var incomingSessionDetails = IncomingSessionDetails.FromUnityLobby(lobby);
-        // this._playerCount = lobby.Players.Count;
-        // UpdateStatusText();
+        var lobby = await LobbyService.Instance.GetLobbyAsync(currentLobbyId);
+        var incomingSessionDetails = IncomingSessionDetails.FromUnityLobby(lobby);
+        this._playerCount = lobby.Players.Count;
+        UpdateStatusText();
 
-        // // This should be replaced with whatever logic you use to determine when a lobby is locked in.
-        // if (this.playerCount > 1 && incomingSessionDetails.AddressBook.Count == lobby.Players.Count)
-        // {
-        //     Debug.LogWarning("Update Session Details");
-        //     NetworkTransport.UpdateSessionDetails(incomingSessionDetails);
-        // }
+        // This should be replaced with whatever logic you use to determine when a lobby is locked in.
+        if (this._playerCount > 1 && incomingSessionDetails.AddressBook.Count == lobby.Players.Count)
+        {
+            Debug.LogWarning("Update Session Details");
+            NetworkTransport.UpdateSessionDetails(incomingSessionDetails);
+        }
     }
     public string LobbyName(){
-        return AuthenticationService.Instance.Profile + " _lobby_" + Random.Range(1,100);
+        return AuthenticationService.Instance.Profile + "_lobby_" + Random.Range(1,100);
     }
     public void StartHost()
     {
