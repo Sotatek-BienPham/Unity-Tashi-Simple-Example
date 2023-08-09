@@ -1,22 +1,88 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using Unity.Netcode;
 using TMPro;
 using UnityEngine.SceneManagement;
 using System;
+using Unity.Services.Authentication;
+using Unity.Services.Core;
+using Unity.Services.Lobbies;
 
 public class MenuSceneManager : Singleton<MenuSceneManager>
 {
     [SerializeField] private TMP_InputField _nameTextField;
     [SerializeField] private string SceneGamePlayName = "PlayScene";
+    [SerializeField] private GameObject profileMenu;
+    [SerializeField] private GameObject lobbyMenu;
+    [SerializeField] private TextMeshProUGUI statusText;
+    [SerializeField] private Button signInButton;
+    private int _clientCount = 0;
+    
     void Start()
     {
         string name = PlayerPrefs.GetString(Constants.NAME_PREF, "");
         PlayerDataManager.Instance.SetName(name);
         _nameTextField.text = name;
-    }
+        /* Listen player name text field value changed */
+        _nameTextField.onValueChanged.AddListener(delegate {OnPlayerNameChange(); });
 
+    }
+    public void OnPlayerNameChange(){
+        Debug.Log("OnPlayerNameChange : " + _nameTextField.text);
+        PlayerDataManager.Instance.SetName(_nameTextField.text);
+    }
+    public async void SignInButtonClicked(){
+        if (string.IsNullOrEmpty(_nameTextField.text))
+        {
+            Debug.Log($"Signing in with the default profile");
+            await UnityServices.InitializeAsync();
+        }
+        else
+        {
+            Debug.Log($"Signing in with profile '{_nameTextField.text}'");
+            var options = new InitializationOptions();
+            options.SetProfile(_nameTextField.text);
+            await UnityServices.InitializeAsync(options);
+        }
+
+        try
+        {
+            signInButton.interactable = false;
+            statusText.text = $"Signing in .... ";
+            AuthenticationService.Instance.SignedIn += delegate
+            {
+                PlayerDataManager.Instance.SetId(AuthenticationService.Instance.PlayerId);
+                UpdateStatusText();
+                profileMenu.SetActive(false);
+                lobbyMenu.SetActive(true);
+            };
+
+            await AuthenticationService.Instance.SignInAnonymouslyAsync();
+        }
+        catch (Exception e)
+        {
+            signInButton.interactable = true;
+            statusText.text = $"Sign in failed : {e.ToString()} ";
+            Debug.LogException(e);
+            throw;
+        }
+    }
+    void UpdateStatusText()
+    {
+        if (!string.IsNullOrEmpty(PlayerDataManager.Instance.playerData.id))
+        {
+            statusText.text = $"Signed in as {PlayerDataManager.Instance.playerData.name} (ID:{PlayerDataManager.Instance.playerData.id}) in Lobby";
+            Debug.Log($"= Profile Name {AuthenticationService.Instance.Profile}");
+        }
+        else
+        {
+            statusText.text = "Not Sign in yet";
+        }
+
+        statusText.text += $"\n{_clientCount} peer connections";
+    }
     public void StartHost()
     {
         try

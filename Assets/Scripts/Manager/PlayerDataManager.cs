@@ -28,6 +28,9 @@ public class PlayerDataManager : MonoBehaviour
         _playerData.name = (value);
         PlayerPrefs.SetString(Constants.NAME_PREF, value);
     }
+    public void SetId(string value){
+        _playerData.id = value;
+    }
 
     public void SetHp(int value)
     {

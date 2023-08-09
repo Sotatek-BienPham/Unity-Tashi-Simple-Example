@@ -548,9 +548,53 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
 - OK So we're basically done game logic, so host and client can go into a room and chasing each other, take the bonus, get the point and let's see who has the best point when end the game. 
 
 
+## Sign in, Login via UGS Authentication : 
+- Go to Project Settings > Services and link to your project in Unity Dashboard. 
+- Go to Unity Dashboard and Setup Authentication. 
+- So in Unity Editor > Project Settings > Services > Authentication : You'll see the list user accounts. 
+- Create UI Menu for Sign in : Text name, button sign in, status text. 
+- In MenuSceneManager.cs, add this function to Sign in : 
+```c# 
+    using Unity.Services.Authentication;
+    using Unity.Services.Core;
+    using Unity.Services.Lobbies;
+    ...
+    public async void SignInButtonClicked(){
+            if (string.IsNullOrEmpty(_nameTextField.text))
+            {
+                Debug.Log($"Signing in with the default profile");
+                await UnityServices.InitializeAsync();
+            }
+            else
+            {
+                Debug.Log($"Signing in with profile '{_nameTextField.text}'");
+                var options = new InitializationOptions();
+                options.SetProfile(_nameTextField.text);
+                await UnityServices.InitializeAsync(options);
+            }
 
+            try
+            {
+                signInButton.interactable = false;
+                statusText.text = $"Signing in .... ";
+                AuthenticationService.Instance.SignedIn += delegate
+                {
+                    PlayerDataManager.Instance.SetId(AuthenticationService.Instance.PlayerId);
+                    UpdateStatusText();
+                    profileMenu.SetActive(false);
+                    lobbyMenu.SetActive(true);
+                };
 
-
-
-
+                await AuthenticationService.Instance.SignInAnonymouslyAsync();
+            }
+            catch (Exception e)
+            {
+                signInButton.interactable = true;
+                statusText.text = $"Sign in failed : {e.ToString()} ";
+                Debug.LogException(e);
+                throw;
+            }
+        }
+```
+- In function, if you lack of what variable, just declare and refers it. 
 
