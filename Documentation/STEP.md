@@ -620,3 +620,9 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
     }
 ```
 
+## Create Lobby :
+- Import Unity package Lobby in Unity Registry.  
+- Create UI Lobby, Show it after signed in. 
+- Setup Lobby Project : Lobby Document [Link](https://docs.unity.com/ugs/en-us/manual/lobby/manual/get-started)
+
+
