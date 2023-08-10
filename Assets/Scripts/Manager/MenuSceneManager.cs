@@ -26,8 +26,14 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
     public TashiNetworkTransport NetworkTransport => NetworkManager.Singleton.NetworkConfig.NetworkTransport as TashiNetworkTransport;
     [SerializeField] private TMP_InputField _numberPlayerInRoomTextField;
     [SerializeField] private TMP_InputField _roomCodeToJoinTextField;
+
+
+    [SerializeField] private GameObject _lobbyFreeGroup; /* Include buttons, components when are free, not in any lobby or room */
+    [SerializeField] private GameObject _inLobbyGroup; /* Include buttons, components when are in lobby */
     [SerializeField] private Button _createLobbyButton;
     [SerializeField] private Button _joinLobbyButton;
+    [SerializeField] private Button _exitLobbyButton;
+    [SerializeField] private Button _startRoomButton;
     public bool isLobbyHost = false;
     public string currentLobbyId = "";
     public string currentLobbyCode = "";
@@ -54,7 +60,7 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         _nameTextField.onValueChanged.AddListener(delegate { OnPlayerNameChange(); });
 
         _createLobbyButton.onClick.AddListener(CreateLobby);
-        _joinLobbyButton.onClick.AddListener(JoinLobby);
+        _joinLobbyButton.onClick.AddListener(JoinLobbyButtonClick);
         CheckAuthentication();
     }
     void Update(){
@@ -142,7 +148,24 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
             statusText.text += $"\n {_playerCount} players in lobby.";
         }
     }
-
+    public async void JoinLobbyButtonClick()
+    {
+        var lobby = await LobbyService.Instance.JoinLobbyByCodeAsync(this._roomCodeToJoinTextField.text);
+        this.currentLobbyId = lobby.Id;
+        this.currentLobbyCode = lobby.LobbyCode;
+        Debug.Log($"Join lobby Id {this.currentLobbyId} has code {this.currentLobbyCode}");
+        this.isLobbyHost = false;
+        UpdateStatusText();
+    }
+    public async void JoinLobbyByRoomCode(string roomCode)
+    {
+        var lobby = await LobbyService.Instance.JoinLobbyByCodeAsync(roomCode);
+        this.currentLobbyId = lobby.Id;
+        this.currentLobbyCode = lobby.LobbyCode;
+        Debug.Log($"Join lobby Id {this.currentLobbyId} has code {this.currentLobbyCode}");
+        this.isLobbyHost = false;
+        UpdateStatusText();
+    }
     public async void CreateLobby(){
         int maxPlayerInRoom = 8;
         if(int.TryParse(_numberPlayerInRoomTextField.text, out int rs)){
@@ -156,21 +179,30 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
             IsPrivate = false,
         };
         string lobbyName = this.LobbyName();
-        Debug.Log($"= Create Lobby name : {lobbyName} has max {maxPlayerInRoom} players.");
 
         var lobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayerInRoom, lobbyOptions);
         this.currentLobbyId = lobby.Id;
         this.currentLobbyCode = lobby.LobbyCode;
         this.isLobbyHost = true;
+        Debug.Log($"= Create Lobby name : {lobbyName} has max {maxPlayerInRoom} players. Lobby Code {this.currentLobbyCode}");
         UpdateStatusText();
     }
-    public void JoinLobby(){
-        string roomCode = _roomCodeToJoinTextField.text;
-
-    }
     public async void CheckLobbyUpdate(){
-        if(string.IsNullOrEmpty(currentLobbyId)) return;
-
+        /* If Free, not in any lobby */
+        if(string.IsNullOrEmpty(currentLobbyId)){
+            this._lobbyFreeGroup.SetActive(true);
+            this._inLobbyGroup.SetActive(false);
+            return;
+        }
+        /* If Are in lobby */
+        this._lobbyFreeGroup.SetActive(false);
+        this._inLobbyGroup.SetActive(true);
+        if(isLobbyHost){
+            _startRoomButton.interactable = true;
+        }else{
+            _startRoomButton.interactable = false;
+        }
+        
         if(Time.realtimeSinceStartup >= nextHeartbeat && isLobbyHost){
             nextHeartbeat = Time.realtimeSinceStartup + 15;
             await LobbyService.Instance.SendHeartbeatPingAsync(currentLobbyId);
