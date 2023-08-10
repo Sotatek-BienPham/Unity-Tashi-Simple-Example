@@ -9,6 +9,7 @@ using System;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Lobbies;
+using Unity.Services.Lobbies.Models;
 using Random = UnityEngine.Random;
 using Tashi.NetworkTransport;
 
@@ -22,7 +23,7 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
     [SerializeField] private TMP_InputField _nameTextField;
     [SerializeField] private TextMeshProUGUI statusText;
     [SerializeField] private Button signInButton;
-    
+
     public TashiNetworkTransport NetworkTransport => NetworkManager.Singleton.NetworkConfig.NetworkTransport as TashiNetworkTransport;
     [Header("Lobby Menu")]
     [SerializeField] private TMP_InputField _numberPlayerInRoomTextField;
@@ -36,6 +37,13 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
     [SerializeField] private Button _joinLobbyButton;
     [SerializeField] private Button _exitLobbyButton;
     [SerializeField] private Button _startRoomButton;
+
+    [Header("List Lobbies")]
+    [SerializeField] private Button _reloadListLobbiesButton;
+    [SerializeField] private Transform _listLobbiesContentTransform;
+    [SerializeField] private LobbyItem _lobbyItemPrefab;
+    public List<LobbyItem> listLobbies = new();
+
     public bool isLobbyHost = false;
     public string currentLobbyId = "";
     public string currentLobbyCode = "";
@@ -50,7 +58,8 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         base.Awake();
         UnityServicesInit();
     }
-    private async void UnityServicesInit(){
+    private async void UnityServicesInit()
+    {
         await UnityServices.InitializeAsync();
     }
     void Start()
@@ -64,11 +73,14 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         _createLobbyButton.onClick.AddListener(CreateLobby);
         _joinLobbyButton.onClick.AddListener(JoinLobbyButtonClick);
 
+        _reloadListLobbiesButton.onClick.AddListener(ListLobbies);
+
         _startRoomButton.onClick.AddListener(StartHost);
-        
+
         CheckAuthentication();
     }
-    void Update(){
+    void Update()
+    {
         this.CheckLobbyUpdate();
     }
     void CheckAuthentication()
@@ -120,6 +132,7 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
                 UpdateStatusText();
                 profileMenu.SetActive(false);
                 lobbyMenu.SetActive(true);
+                ListLobbies();
             };
 
             await AuthenticationService.Instance.SignInAnonymouslyAsync();
@@ -146,9 +159,12 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         {
             statusText.text = "Not Sign in yet";
         }
-        if(string.IsNullOrEmpty(currentLobbyId) || string.IsNullOrEmpty(currentLobbyCode)){
+        if (string.IsNullOrEmpty(currentLobbyId) || string.IsNullOrEmpty(currentLobbyCode))
+        {
 
-        }else{
+        }
+        else
+        {
             statusText.text += $"\n In Lobby ID : {currentLobbyId} has code : {currentLobbyCode}";
             statusText.text += $"\n {_playerCount} players in lobby.";
         }
@@ -173,16 +189,31 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         _roomCodeLobbyTextField.text = this.currentLobbyCode;
         UpdateStatusText();
     }
-    public async void CreateLobby(){
+    public async void JoinLobbyByLobbyId(string lobbyId)
+    {
+        var lobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId);
+        this.currentLobbyId = lobby.Id;
+        this.currentLobbyCode = lobby.LobbyCode;
+        Debug.Log($"Join lobby Id {this.currentLobbyId} has code {this.currentLobbyCode}");
+        this.isLobbyHost = false;
+        _roomCodeLobbyTextField.text = this.currentLobbyCode;
+        UpdateStatusText();
+    }
+    public async void CreateLobby()
+    {
         int maxPlayerInRoom = 8;
-        if(int.TryParse(_numberPlayerInRoomTextField.text, out int rs)){
+        if (int.TryParse(_numberPlayerInRoomTextField.text, out int rs))
+        {
             maxPlayerInRoom = rs;
-        }else{
+        }
+        else
+        {
             maxPlayerInRoom = 8;
         }
         _numberPlayerInRoomTextField.text = maxPlayerInRoom.ToString();
 
-        var lobbyOptions = new CreateLobbyOptions{
+        var lobbyOptions = new CreateLobbyOptions
+        {
             IsPrivate = false,
         };
         string lobbyName = this.LobbyName();
@@ -195,9 +226,11 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         Debug.Log($"= Create Lobby name : {lobbyName} has max {maxPlayerInRoom} players. Lobby Code {this.currentLobbyCode}");
         UpdateStatusText();
     }
-    public async void CheckLobbyUpdate(){
+    public async void CheckLobbyUpdate()
+    {
         /* If Free, not in any lobby */
-        if(string.IsNullOrEmpty(currentLobbyId)){
+        if (string.IsNullOrEmpty(currentLobbyId))
+        {
             this._lobbyFreeGroup.SetActive(true);
             this._inLobbyGroup.SetActive(false);
             return;
@@ -205,24 +238,73 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         /* If Are in lobby */
         this._lobbyFreeGroup.SetActive(false);
         this._inLobbyGroup.SetActive(true);
-        if(isLobbyHost){
+        if (isLobbyHost)
+        {
             _startRoomButton.interactable = true;
-        }else{
+        }
+        else
+        {
             _startRoomButton.interactable = false;
         }
-        
-        if(Time.realtimeSinceStartup >= nextHeartbeat && isLobbyHost){
+
+        if (Time.realtimeSinceStartup >= nextHeartbeat && isLobbyHost)
+        {
             nextHeartbeat = Time.realtimeSinceStartup + 15;
             await LobbyService.Instance.SendHeartbeatPingAsync(currentLobbyId);
         }
 
-        if(Time.realtimeSinceStartup >= nextLobbyRefresh){
+        if (Time.realtimeSinceStartup >= nextLobbyRefresh)
+        {
             this.nextLobbyRefresh = Time.realtimeSinceStartup + 2;
             this.LobbyUpdate();
             this.ReceiveIncomingDetail();
         }
     }
-    public async void LobbyUpdate(){
+    public async void ListLobbies()
+    {
+        try
+        {
+            QueryLobbiesOptions queryLobbiesOptions = new QueryLobbiesOptions
+            {
+                Count = 25,
+                Filters = new List<QueryFilter>{
+                    new QueryFilter(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT)
+                },
+                Order = new List<QueryOrder>{
+                    new QueryOrder(false, QueryOrder.FieldOptions.Created)
+                }
+            };
+
+            QueryResponse queryResponse = await Lobbies.Instance.QueryLobbiesAsync(queryLobbiesOptions);
+            Debug.Log("= Lobbies found : " + queryResponse.Results.Count);
+
+            foreach (Transform child in _listLobbiesContentTransform)
+            {
+                Destroy(child.gameObject);
+            }
+            listLobbies.Clear();
+            int i = 0;
+            foreach (Lobby lobby in queryResponse.Results)
+            {
+                i++;
+                Debug.Log($"= Lobby {lobby.Name} has max {lobby.MaxPlayers} players");
+                var lobbyItem = Instantiate(_lobbyItemPrefab, _listLobbiesContentTransform);
+                lobbyItem.SetData("#" + i, lobby.Id, lobby.LobbyCode, lobby.Name);
+                lobbyItem.SetOnClickJoin(OnClickJoinLobby);
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Exception : " + e.ToString());
+        }
+    }
+    public void OnClickJoinLobby(string lobbyId)
+    {
+        if (string.IsNullOrEmpty(this.currentLobbyId))
+            JoinLobbyByLobbyId(lobbyId);
+    }
+    public async void LobbyUpdate()
+    {
         var outgoingSessionDetails = NetworkTransport.OutgoingSessionDetails;
 
         var updatePlayerOptions = new UpdatePlayerOptions();
@@ -240,9 +322,10 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
             }
         }
     }
-    public async void ReceiveIncomingDetail(){
+    public async void ReceiveIncomingDetail()
+    {
         if (NetworkTransport.SessionHasStarted) return;
-        
+
         Debug.LogWarning("Receive Incoming Detail");
 
         var lobby = await LobbyService.Instance.GetLobbyAsync(currentLobbyId);
@@ -257,8 +340,9 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
             NetworkTransport.UpdateSessionDetails(incomingSessionDetails);
         }
     }
-    public string LobbyName(){
-        return AuthenticationService.Instance.Profile + "_lobby_" + Random.Range(1,100);
+    public string LobbyName()
+    {
+        return AuthenticationService.Instance.Profile + "_lobby_" + Random.Range(1, 100);
     }
     public void StartHost()
     {
