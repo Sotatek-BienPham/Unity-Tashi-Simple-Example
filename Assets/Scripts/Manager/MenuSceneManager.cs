@@ -22,10 +22,12 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
     [SerializeField] private TMP_InputField _nameTextField;
     [SerializeField] private TextMeshProUGUI statusText;
     [SerializeField] private Button signInButton;
-    // [Header("Lobby Menu")]
+    
     public TashiNetworkTransport NetworkTransport => NetworkManager.Singleton.NetworkConfig.NetworkTransport as TashiNetworkTransport;
+    [Header("Lobby Menu")]
     [SerializeField] private TMP_InputField _numberPlayerInRoomTextField;
     [SerializeField] private TMP_InputField _roomCodeToJoinTextField;
+    [SerializeField] private TMP_InputField _roomCodeLobbyTextField; /* room code of lobby you are in */
 
 
     [SerializeField] private GameObject _lobbyFreeGroup; /* Include buttons, components when are free, not in any lobby or room */
@@ -61,6 +63,9 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
 
         _createLobbyButton.onClick.AddListener(CreateLobby);
         _joinLobbyButton.onClick.AddListener(JoinLobbyButtonClick);
+
+        _startRoomButton.onClick.AddListener(StartHost);
+        
         CheckAuthentication();
     }
     void Update(){
@@ -155,6 +160,7 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         this.currentLobbyCode = lobby.LobbyCode;
         Debug.Log($"Join lobby Id {this.currentLobbyId} has code {this.currentLobbyCode}");
         this.isLobbyHost = false;
+        _roomCodeLobbyTextField.text = this.currentLobbyCode;
         UpdateStatusText();
     }
     public async void JoinLobbyByRoomCode(string roomCode)
@@ -164,6 +170,7 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         this.currentLobbyCode = lobby.LobbyCode;
         Debug.Log($"Join lobby Id {this.currentLobbyId} has code {this.currentLobbyCode}");
         this.isLobbyHost = false;
+        _roomCodeLobbyTextField.text = this.currentLobbyCode;
         UpdateStatusText();
     }
     public async void CreateLobby(){
@@ -184,6 +191,7 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         this.currentLobbyId = lobby.Id;
         this.currentLobbyCode = lobby.LobbyCode;
         this.isLobbyHost = true;
+        _roomCodeLobbyTextField.text = this.currentLobbyCode;
         Debug.Log($"= Create Lobby name : {lobbyName} has max {maxPlayerInRoom} players. Lobby Code {this.currentLobbyCode}");
         UpdateStatusText();
     }
