@@ -132,7 +132,9 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
                 UpdateStatusText();
                 profileMenu.SetActive(false);
                 lobbyMenu.SetActive(true);
+
                 ListLobbies();
+                StartCoroutine(IEGetListLobbies());
             };
 
             await AuthenticationService.Instance.SignInAnonymouslyAsync();
@@ -143,6 +145,12 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
             statusText.text = $"Sign in failed : {e.ToString()} ";
             Debug.LogException(e);
             throw;
+        }
+    }
+    IEnumerator IEGetListLobbies(float delayTime = 3f){
+        while(AuthenticationService.Instance.IsSignedIn){
+            yield return new WaitForSeconds(delayTime);
+            ListLobbies();
         }
     }
     void UpdateStatusText()
@@ -276,7 +284,7 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
             };
 
             QueryResponse queryResponse = await Lobbies.Instance.QueryLobbiesAsync(queryLobbiesOptions);
-            Debug.Log("= Lobbies found : " + queryResponse.Results.Count);
+            // Debug.Log("= Lobbies found : " + queryResponse.Results.Count);
 
             foreach (Transform child in _listLobbiesContentTransform)
             {
@@ -287,7 +295,7 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
             foreach (Lobby lobby in queryResponse.Results)
             {
                 i++;
-                Debug.Log($"= Lobby {lobby.Name} has max {lobby.MaxPlayers} players");
+                // Debug.Log($"= Lobby {lobby.Name} has max {lobby.MaxPlayers} players");
                 var lobbyItem = Instantiate(_lobbyItemPrefab, _listLobbiesContentTransform);
                 lobbyItem.SetData("#" + i, lobby.Id, lobby.LobbyCode, lobby.Name);
                 lobbyItem.SetOnClickJoin(OnClickJoinLobby);
