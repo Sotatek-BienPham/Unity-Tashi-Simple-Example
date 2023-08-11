@@ -159,8 +159,6 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         {
             statusText.text = $"Signed in as {AuthenticationService.Instance.Profile} (ID:{AuthenticationService.Instance.PlayerId}) in Lobby";
             // Shows how to get an access token
-            // Debug.Log($"Access Token: {AuthenticationService.Instance.AccessToken}");
-
             statusText.text += $"\n{_clientCount} peer connections";
         }
         else
@@ -169,7 +167,6 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         }
         if (string.IsNullOrEmpty(currentLobbyId) || string.IsNullOrEmpty(currentLobbyCode))
         {
-
         }
         else
         {
