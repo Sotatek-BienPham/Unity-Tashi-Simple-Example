@@ -193,6 +193,10 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         UpdatePlayerDataInCurrentLobby(lobby, AuthenticationService.Instance.Profile, PlayerTypeInGame.Thief.ToString(), false);
 
     }
+    public async void UpdatePlayerDataIsReadyInLobby(Lobby lobby, bool isReady){
+        // UpdatePlayerDataInCurrentLobby();
+    }
+    /* To update some Player Info through lobby such as name, isReady state, role */
     public async void UpdatePlayerDataInCurrentLobby(Lobby lobby, string name, string role, bool isReady)
     {
         /* Add Player Data into Lobby */
@@ -234,6 +238,29 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
                 Debug.Log($"= Key : {k.Key.ToString()} and Value = {k.Value.Value.ToString()}");
 
             var lobbyUpdated = await LobbyService.Instance.UpdatePlayerAsync(currentLobbyId, playerId, options);
+
+            Debug.Log("====== TEST CHANGE AGAIN NAME ===");
+            UpdatePlayerOptions options2 = new UpdatePlayerOptions();
+            options2.Data = new Dictionary<string, PlayerDataObject>()
+            {
+                {
+                    "Name", new PlayerDataObject(
+                        visibility: PlayerDataObject.VisibilityOptions.Private,
+                        value: "updated data value")
+                }
+            };
+            var lobbyUpdated2 = await LobbyService.Instance.UpdatePlayerAsync(currentLobbyId, playerId, options2);
+            
+            p = lobbyUpdated2.Players.Find(x => x.Id == playerId);
+            if (p is null) return;
+            Debug.Log("= UpdatePlayerDataInCurrentLobby : ID : " + p.Id);
+            Dictionary<string, PlayerDataObject> oldData2 = p.Data;
+            if (oldData2 is null){
+                oldData2 = new Dictionary<string, PlayerDataObject>();
+            };
+            Debug.Log("====== PLAYER DATA OBJECT AFTER TEST CHANGE =====");
+            foreach (KeyValuePair<string, PlayerDataObject> k in oldData2)
+                Debug.Log($"= Key : {k.Key.ToString()} and Value = {k.Value.Value.ToString()}");
 
             //...
         }

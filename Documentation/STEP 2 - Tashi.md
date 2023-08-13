@@ -243,3 +243,5 @@
     }
 }
 ```
+
+- Notice : PlayerDataObject in Lobby, when you LobbyService.Instance.UpdatePlayerAsync(currentLobbyId, playerId, options) , it's just update which param you put in the options, event if you create new options, old data still exist if you dont remove or change it. 
