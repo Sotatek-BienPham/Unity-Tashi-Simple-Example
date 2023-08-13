@@ -206,3 +206,40 @@
         }
     }
 ```
+
+## Create List Player In Room : Name, State 
+- Define some variable to control list player data in MenuSceneManager: 
+```c# 
+    [Header("List PLayers in Room")]
+    [SerializeField] private Transform _listPlayersContentTransform;
+    [SerializeField] private PlayerItem _playerItemPrefab; /* NOtice : PlayerItem */
+    public List<PlayerItem> listPlayers = new();
+```
+- It's the same with List Lobby, so I create the PlayerItem.cs for each item Player in Player List : 
+```c#
+    public class PlayerItem : MonoBehaviour {
+    [SerializeField] public TextMeshProUGUI sttText;
+    [SerializeField] public TextMeshProUGUI nameText;
+    [SerializeField] public TextMeshProUGUI roleText;
+    [SerializeField] public Image readyImage;
+    [SerializeField] public Sprite isReadyImage;
+    [SerializeField] public Sprite isNotReadyImage;
+
+    void Start(){
+        
+    }
+    public void SetData(string stt,string name, PlayerTypeInGame role, bool isReady = false){
+        sttText.text = stt;
+        nameText.text = name;
+        roleText.text = role.ToString();
+        SetReadyImage(isReady);
+    }
+    public void SetReadyImage(bool isReady = false){
+        if(isReady){
+            readyImage.sprite = isReadyImage;
+        }else{
+            readyImage.sprite = isNotReadyImage;
+        }
+    }
+}
+```
