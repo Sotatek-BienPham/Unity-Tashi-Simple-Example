@@ -19,6 +19,7 @@ public class PlayerItem : MonoBehaviour {
         nameText.text = name;
         roleText.text = role;
         SetReadyImage(isReady);
+        this.gameObject.SetActive(true);
     }
     public void SetReadyImage(bool isReady = false){
         if(isReady){

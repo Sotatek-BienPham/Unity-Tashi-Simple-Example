@@ -15,46 +15,57 @@ using Tashi.NetworkTransport;
 
 public class MenuSceneManager : Singleton<MenuSceneManager>
 {
-
     [SerializeField] private GameObject profileMenu;
     [SerializeField] private GameObject lobbyMenu;
     [SerializeField] private string SceneGamePlayName = "PlayScene";
-    [Header("Profile Menu")]
-    [SerializeField] private TMP_InputField _nameTextField;
+
+    [Header("Profile Menu")] [SerializeField]
+    private TMP_InputField _nameTextField;
+
     [SerializeField] private TextMeshProUGUI statusText;
     [SerializeField] private Button signInButton;
 
-    public TashiNetworkTransport NetworkTransport => NetworkManager.Singleton.NetworkConfig.NetworkTransport as TashiNetworkTransport;
-    [Header("Lobby Menu")]
-    [SerializeField] private TMP_InputField _numberPlayerInRoomTextField;
+    public TashiNetworkTransport NetworkTransport =>
+        NetworkManager.Singleton.NetworkConfig.NetworkTransport as TashiNetworkTransport;
+
+    [Header("Lobby Menu")] [SerializeField]
+    private TMP_InputField _numberPlayerInRoomTextField;
+
     [SerializeField] private TMP_InputField _roomCodeToJoinTextField;
     [SerializeField] private TMP_InputField _roomCodeLobbyTextField; /* room code of lobby you are in */
 
 
-    [SerializeField] private GameObject _lobbyFreeGroup; /* Include buttons, components when are free, not in any lobby or room */
+    [SerializeField]
+    private GameObject _lobbyFreeGroup; /* Include buttons, components when are free, not in any lobby or room */
+
     [SerializeField] private GameObject _inLobbyGroup; /* Include buttons, components when are in lobby */
     [SerializeField] private Button _createLobbyButton;
     [SerializeField] private Button _joinLobbyButton;
     [SerializeField] private Button _exitLobbyButton;
     [SerializeField] private Button _startRoomButton;
+    [SerializeField] private Button _readyRoomButton;
 
-    [Header("List PLayers in Room")]
-    [SerializeField] private Transform _listPlayersContentTransform;
+    [Header("List PLayers in Room")] [SerializeField]
+    private Transform _listPlayersContentTransform;
+
     [SerializeField] private PlayerItem _playerItemPrefab;
     public List<PlayerItem> listPlayers = new();
 
-    [Header("List Lobbies")]
-    [SerializeField] private Button _reloadListLobbiesButton;
+    [Header("List Lobbies")] [SerializeField]
+    private Button _reloadListLobbiesButton;
+
     [SerializeField] private Transform _listLobbiesContentTransform;
     [SerializeField] private LobbyItem _lobbyItemPrefab;
     public List<LobbyItem> listLobbies = new();
 
+    public Lobby lobby;
     public bool isLobbyHost = false;
     public string currentLobbyId = "";
     public string currentLobbyCode = "";
     public float nextHeartbeat;
     public float nextLobbyRefresh;
-    private int _playerCount = 0;  /* Number player in lobby */
+    public bool isSetInitPlayerDataObject = true; 
+    private int _playerCount = 0; /* Number player in lobby */
 
     private int _clientCount = 0; /* total clients are connect */
 
@@ -63,10 +74,12 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         base.Awake();
         UnityServicesInit();
     }
+
     private async void UnityServicesInit()
     {
         await UnityServices.InitializeAsync();
     }
+
     void Start()
     {
         string name = PlayerPrefs.GetString(Constants.NAME_PREF, "");
@@ -81,13 +94,27 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         _reloadListLobbiesButton.onClick.AddListener(ListLobbies);
 
         _startRoomButton.onClick.AddListener(StartHost);
+        _readyRoomButton.onClick.AddListener(ToggleReadyState);
+        _exitLobbyButton.onClick.AddListener(ExitCurrentLobby);
 
         CheckAuthentication();
     }
+
+    public async void ToggleReadyState()
+    {
+        Lobby lobby = await LobbyService.Instance.GetLobbyAsync(currentLobbyId);
+        Player p = lobby.Players.Find(x => x.Id == AuthenticationService.Instance.PlayerId);
+        if (p is null) return;
+        string _isReadyStr = p.Data["IsReady"].Value;
+        bool _isReady = bool.Parse(_isReadyStr);
+        UpdatePlayerDataIsReadyInLobby(!_isReady);
+    }
+
     void Update()
     {
-        this.CheckLobbyUpdate();
+        CheckLobbyUpdate();
     }
+
     void CheckAuthentication()
     {
         /* Check signed in */
@@ -101,13 +128,16 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
             profileMenu.SetActive(true);
             lobbyMenu.SetActive(false);
         }
+
         UpdateStatusText();
     }
+
     public void OnPlayerNameChange()
     {
         Debug.Log("OnPlayerNameChange : " + _nameTextField.text);
         PlayerDataManager.Instance.SetName(_nameTextField.text);
     }
+
     public async void SignInButtonClicked()
     {
         if (string.IsNullOrEmpty(_nameTextField.text))
@@ -133,6 +163,8 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
             statusText.text = $"Signing in .... ";
             AuthenticationService.Instance.SignedIn += delegate
             {
+                Debug.Log("SignedIn OK!");
+                signInButton.interactable = true;
                 PlayerDataManager.Instance.SetId(AuthenticationService.Instance.PlayerId);
                 UpdateStatusText();
                 profileMenu.SetActive(false);
@@ -152,19 +184,22 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
             throw;
         }
     }
+
     IEnumerator IEGetListLobbies(float delayTime = 3f)
     {
-        while (AuthenticationService.Instance.IsSignedIn)
+        while (AuthenticationService.Instance.IsSignedIn && string.IsNullOrEmpty(currentLobbyId))
         {
             yield return new WaitForSeconds(delayTime);
             ListLobbies();
         }
     }
+
     void UpdateStatusText()
     {
         if (AuthenticationService.Instance.IsSignedIn)
         {
-            statusText.text = $"Signed in as {AuthenticationService.Instance.Profile} (ID:{AuthenticationService.Instance.PlayerId}) in Lobby";
+            statusText.text =
+                $"Signed in as {AuthenticationService.Instance.Profile} (ID:{AuthenticationService.Instance.PlayerId}) in Lobby";
             // Shows how to get an access token
             statusText.text += $"\n{_clientCount} peer connections";
         }
@@ -172,6 +207,7 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         {
             statusText.text = "Not Sign in yet";
         }
+
         if (string.IsNullOrEmpty(currentLobbyId) || string.IsNullOrEmpty(currentLobbyCode))
         {
         }
@@ -181,28 +217,55 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
             statusText.text += $"\n {_playerCount} players in lobby.";
         }
     }
+
     public async void JoinLobbyButtonClick()
     {
-        var lobby = await LobbyService.Instance.JoinLobbyByCodeAsync(this._roomCodeToJoinTextField.text);
+        lobby = await LobbyService.Instance.JoinLobbyByCodeAsync(this._roomCodeToJoinTextField.text);
+        
+        NetworkManager.Singleton.StartClient();
         this.currentLobbyId = lobby.Id;
         this.currentLobbyCode = lobby.LobbyCode;
         Debug.Log($"Join lobby Id {this.currentLobbyId} has code {this.currentLobbyCode}");
         this.isLobbyHost = false;
         _roomCodeLobbyTextField.text = this.currentLobbyCode;
         UpdateStatusText();
-        UpdatePlayerDataInCurrentLobby(lobby, AuthenticationService.Instance.Profile, PlayerTypeInGame.Thief.ToString(), false);
+        isSetInitPlayerDataObject = false;
+    }
 
+    public async void UpdatePlayerDataIsReadyInLobby(bool isReady)
+    {
+        try
+        {
+            UpdatePlayerOptions options = new UpdatePlayerOptions();
+
+            options.Data = new Dictionary<string, PlayerDataObject>()
+            {
+                {
+                    "IsReady", new PlayerDataObject(
+                        visibility: PlayerDataObject.VisibilityOptions.Public,
+                        value: isReady.ToString())
+                }
+            };
+
+            //Ensure you sign-in before calling Authentication Instance
+            //See IAuthenticationService interface
+            string playerId = AuthenticationService.Instance.PlayerId;
+
+            lobby = await LobbyService.Instance.UpdatePlayerAsync(currentLobbyId, playerId, options);
+            Debug.Log("= UpdatePlayerDataIsReadyInLobby : isReady " + isReady.ToString());
+        }
+        catch (LobbyServiceException e)
+        {
+            Debug.Log(e);
+        }
     }
-    public async void UpdatePlayerDataIsReadyInLobby(Lobby lobby, bool isReady){
-        // UpdatePlayerDataInCurrentLobby();
-    }
+
     /* To update some Player Info through lobby such as name, isReady state, role */
     public async void UpdatePlayerDataInCurrentLobby(Lobby lobby, string name, string role, bool isReady)
     {
         /* Add Player Data into Lobby */
         try
         {
-
             //Ensure you sign-in before calling Authentication Instance
             //See IAuthenticationService interface
             string playerId = AuthenticationService.Instance.PlayerId;
@@ -212,54 +275,30 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
             if (p is null) return;
             Debug.Log("= UpdatePlayerDataInCurrentLobby : ID : " + p.Id);
             Dictionary<string, PlayerDataObject> oldData = p.Data;
-            if (oldData is null){
+            if (oldData is null)
+            {
                 oldData = new Dictionary<string, PlayerDataObject>();
-            };
-            Debug.Log("====== PLAYER DATA OBJECT BEFORE =====");
-            foreach (KeyValuePair<string, PlayerDataObject> k in oldData)
-                Debug.Log($"= Key : {k.Key.ToString()} and Value = {k.Value.Value.ToString()}");
+            }
 
             UpdatePlayerOptions options = new UpdatePlayerOptions();
-            options.Data = oldData; 
-            // options.Data = new Dictionary<string, PlayerDataObject>();
+            // options.Data = oldData; 
+            options.Data = new Dictionary<string, PlayerDataObject>();
 
             options.Data["Name"] = new PlayerDataObject(
-                        visibility: PlayerDataObject.VisibilityOptions.Private,
-                        value: name);
+                visibility: PlayerDataObject.VisibilityOptions.Public,
+                value: name);
             options.Data["Role"] = new PlayerDataObject(
-                        visibility: PlayerDataObject.VisibilityOptions.Private,
-                        value: role);
+                visibility: PlayerDataObject.VisibilityOptions.Public,
+                value: role);
             options.Data["IsReady"] = new PlayerDataObject(
-                        visibility: PlayerDataObject.VisibilityOptions.Private,
-                        value: isReady.ToString());
+                visibility: PlayerDataObject.VisibilityOptions.Public,
+                value: isReady.ToString());
 
-            Debug.Log("====== PLAYER DATA OBJECT AFTER =====");
-            foreach (KeyValuePair<string, PlayerDataObject> k in options.Data)
-                Debug.Log($"= Key : {k.Key.ToString()} and Value = {k.Value.Value.ToString()}");
-
-            var lobbyUpdated = await LobbyService.Instance.UpdatePlayerAsync(currentLobbyId, playerId, options);
-
-            Debug.Log("====== TEST CHANGE AGAIN NAME ===");
-            UpdatePlayerOptions options2 = new UpdatePlayerOptions();
-            options2.Data = new Dictionary<string, PlayerDataObject>()
-            {
-                {
-                    "Name", new PlayerDataObject(
-                        visibility: PlayerDataObject.VisibilityOptions.Private,
-                        value: "updated data value")
-                }
-            };
-            var lobbyUpdated2 = await LobbyService.Instance.UpdatePlayerAsync(currentLobbyId, playerId, options2);
+            lobby = await LobbyService.Instance.UpdatePlayerAsync(currentLobbyId, playerId, options);
             
-            p = lobbyUpdated2.Players.Find(x => x.Id == playerId);
-            if (p is null) return;
-            Debug.Log("= UpdatePlayerDataInCurrentLobby : ID : " + p.Id);
-            Dictionary<string, PlayerDataObject> oldData2 = p.Data;
-            if (oldData2 is null){
-                oldData2 = new Dictionary<string, PlayerDataObject>();
-            };
-            Debug.Log("====== PLAYER DATA OBJECT AFTER TEST CHANGE =====");
-            foreach (KeyValuePair<string, PlayerDataObject> k in oldData2)
+            
+            Debug.Log("====== PLAYER DATA OBJECT AFTER =====");
+            foreach (KeyValuePair<string, PlayerDataObject> k in lobby.Players.Find(x=>x.Id == playerId).Data)
                 Debug.Log($"= Key : {k.Key.ToString()} and Value = {k.Value.Value.ToString()}");
 
             //...
@@ -269,28 +308,38 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
             Debug.Log(e);
         }
     }
+
     public async void JoinLobbyByRoomCode(string roomCode)
     {
-        var lobby = await LobbyService.Instance.JoinLobbyByCodeAsync(roomCode);
+        lobby = await LobbyService.Instance.JoinLobbyByCodeAsync(roomCode);
+        
+        NetworkManager.Singleton.StartClient();
         this.currentLobbyId = lobby.Id;
         this.currentLobbyCode = lobby.LobbyCode;
         Debug.Log($"Join lobby Id {this.currentLobbyId} has code {this.currentLobbyCode}");
         this.isLobbyHost = false;
         _roomCodeLobbyTextField.text = this.currentLobbyCode;
         UpdateStatusText();
-        UpdatePlayerDataInCurrentLobby(lobby, AuthenticationService.Instance.Profile, PlayerTypeInGame.Thief.ToString(), false);
+        isSetInitPlayerDataObject = false;
     }
+
     public async void JoinLobbyByLobbyId(string lobbyId)
     {
-        var lobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId);
+        NetworkManager.Singleton.StartClient();
+        lobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId);
+        
         this.currentLobbyId = lobby.Id;
         this.currentLobbyCode = lobby.LobbyCode;
         Debug.Log($"Join lobby Id {this.currentLobbyId} has code {this.currentLobbyCode}");
         this.isLobbyHost = false;
         _roomCodeLobbyTextField.text = this.currentLobbyCode;
         UpdateStatusText();
-        UpdatePlayerDataInCurrentLobby(lobby, AuthenticationService.Instance.Profile, PlayerTypeInGame.Thief.ToString(), false);
+        isSetInitPlayerDataObject = false;
+        
+        UpdatePlayerDataInCurrentLobby(lobby, AuthenticationService.Instance.Profile,
+            isLobbyHost ? PlayerTypeInGame.Police.ToString() : PlayerTypeInGame.Thief.ToString(), false);
     }
+
     public async void CreateLobby()
     {
         int maxPlayerInRoom = 8;
@@ -302,7 +351,10 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         {
             maxPlayerInRoom = 8;
         }
+
         _numberPlayerInRoomTextField.text = maxPlayerInRoom.ToString();
+        
+        NetworkManager.Singleton.StartServer();
 
         var lobbyOptions = new CreateLobbyOptions
         {
@@ -310,15 +362,17 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         };
         string lobbyName = this.LobbyName();
 
-        var lobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayerInRoom, lobbyOptions);
+        lobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayerInRoom, lobbyOptions);
         this.currentLobbyId = lobby.Id;
         this.currentLobbyCode = lobby.LobbyCode;
         this.isLobbyHost = true;
         _roomCodeLobbyTextField.text = this.currentLobbyCode;
-        Debug.Log($"= Create Lobby name : {lobbyName} has max {maxPlayerInRoom} players. Lobby Code {this.currentLobbyCode}");
+        Debug.Log(
+            $"= Create Lobby name : {lobbyName} has max {maxPlayerInRoom} players. Lobby Code {this.currentLobbyCode}");
         UpdateStatusText();
-        UpdatePlayerDataInCurrentLobby(lobby, AuthenticationService.Instance.Profile, PlayerTypeInGame.Police.ToString(), false);
+        isSetInitPlayerDataObject = false;
     }
+
     public async void CheckLobbyUpdate()
     {
         /* If Free, not in any lobby */
@@ -328,17 +382,13 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
             this._inLobbyGroup.SetActive(false);
             return;
         }
+
         /* If Are in lobby */
         this._lobbyFreeGroup.SetActive(false);
         this._inLobbyGroup.SetActive(true);
-        if (isLobbyHost)
-        {
-            _startRoomButton.interactable = true;
-        }
-        else
-        {
-            _startRoomButton.interactable = false;
-        }
+
+        _startRoomButton.gameObject.SetActive(isLobbyHost);
+        _readyRoomButton.gameObject.SetActive(!isLobbyHost);
 
         if (Time.realtimeSinceStartup >= nextHeartbeat && isLobbyHost)
         {
@@ -353,6 +403,7 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
             this.ReceiveIncomingDetail();
         }
     }
+
     public async void ListLobbies()
     {
         try
@@ -360,10 +411,12 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
             QueryLobbiesOptions queryLobbiesOptions = new QueryLobbiesOptions
             {
                 Count = 25,
-                Filters = new List<QueryFilter>{
+                Filters = new List<QueryFilter>
+                {
                     new QueryFilter(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT)
                 },
-                Order = new List<QueryOrder>{
+                Order = new List<QueryOrder>
+                {
                     new QueryOrder(false, QueryOrder.FieldOptions.Created)
                 }
             };
@@ -375,6 +428,7 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
             {
                 Destroy(child.gameObject);
             }
+
             listLobbies.Clear();
             int i = 0;
             foreach (Lobby lobby in queryResponse.Results)
@@ -391,11 +445,13 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
             Debug.LogError("Exception : " + e.ToString());
         }
     }
+
     public void OnClickJoinLobby(string lobbyId)
     {
         if (string.IsNullOrEmpty(this.currentLobbyId))
             JoinLobbyByLobbyId(lobbyId);
     }
+
     public async void LobbyUpdate()
     {
         var outgoingSessionDetails = NetworkTransport.OutgoingSessionDetails;
@@ -403,55 +459,99 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         var updatePlayerOptions = new UpdatePlayerOptions();
         if (outgoingSessionDetails.AddTo(updatePlayerOptions))
         {
-            await LobbyService.Instance.UpdatePlayerAsync(currentLobbyId, AuthenticationService.Instance.PlayerId, updatePlayerOptions);
+            // Debug.Log("= PlayerData outgoingSessionDetails AddTo TRUE so can UpdatePLayerAsync");
+            lobby = await LobbyService.Instance.UpdatePlayerAsync(currentLobbyId, AuthenticationService.Instance.PlayerId,
+                updatePlayerOptions);
+            
+            if (isSetInitPlayerDataObject == false)
+            {
+                isSetInitPlayerDataObject = true;
+                UpdatePlayerDataInCurrentLobby(lobby, AuthenticationService.Instance.Profile,
+                    isLobbyHost ? PlayerTypeInGame.Police.ToString() : PlayerTypeInGame.Thief.ToString(), false);
+            }
         }
-
+        else
+        {
+            // Debug.Log("= PlayerData outgoingSessionDetails AddTo FALSE.");
+        }
+        
         if (isLobbyHost)
         {
             var updateLobbyOptions = new UpdateLobbyOptions();
             if (outgoingSessionDetails.AddTo(updateLobbyOptions))
             {
-                await LobbyService.Instance.UpdateLobbyAsync(currentLobbyId, updateLobbyOptions);
+                // Debug.Log("= Lobby outgoingSessionDetails AddTo TRUE and Update Lobby Async.");
+                lobby = await LobbyService.Instance.UpdateLobbyAsync(currentLobbyId, updateLobbyOptions);
+            }
+            else
+            {
+                // Debug.Log("= Lobby outgoingSessionDetails AddTo FALSE");
             }
         }
+        
+        
     }
+
     public async void ReceiveIncomingDetail()
     {
         if (NetworkTransport.SessionHasStarted) return;
 
         Debug.LogWarning("Receive Incoming Detail");
 
-        var lobby = await LobbyService.Instance.GetLobbyAsync(currentLobbyId);
+        lobby = await LobbyService.Instance.GetLobbyAsync(currentLobbyId);
         var incomingSessionDetails = IncomingSessionDetails.FromUnityLobby(lobby);
         this._playerCount = lobby.Players.Count;
         UpdateStatusText();
 
-        /* Refresh List Player In Room */
-        foreach (Transform child in _listPlayersContentTransform)
-        {
-            Destroy(child.gameObject);
-        }
-        listPlayers.Clear();
-        for (int i = 0; i <= lobby.Players.Count - 1; i++)
-        {
-            Player pData = lobby.Players[i];
-            if(pData.Data is null) continue;
-            Debug.Log(pData.Data["Name"].Value);
-            var playerItem = Instantiate(_playerItemPrefab, _listPlayersContentTransform);
-            playerItem.SetData("#" + i + 1, pData.Data["Name"].Value, pData.Data["Role"].Value, Convert.ToBoolean(pData.Data["IsReady"].Value));
-            listPlayers.Add(playerItem);
-        }
+
         // This should be replaced with whatever logic you use to determine when a lobby is locked in.
         if (this._playerCount > 1 && incomingSessionDetails.AddressBook.Count == lobby.Players.Count)
         {
             Debug.LogWarning("Update Session Details");
             NetworkTransport.UpdateSessionDetails(incomingSessionDetails);
         }
+
+        /* Refresh List Player In Room */
+        foreach (Transform child in _listPlayersContentTransform)
+        {
+            child.gameObject.SetActive(false);
+        }
+
+        listPlayers.Clear();
+        for (int i = 0; i <= lobby.Players.Count - 1; i++)
+        {
+            Player pData = lobby.Players[i];
+            Debug.Log("====== PLAYER DATA OBJECT INCOMMING DETAIL  ===== INDEX : " + i);
+            
+            if (pData.Data is null) continue;
+            
+            foreach (KeyValuePair<string, PlayerDataObject> k in pData.Data)
+                Debug.Log($"= Key : {k.Key.ToString()} and Value = {k.Value.Value.ToString()}");
+
+            PlayerItem playerItem;
+            try
+            {
+                playerItem = _listPlayersContentTransform.GetChild(i).GetComponent<PlayerItem>();
+            }
+            catch (Exception)
+            {
+                playerItem = Instantiate(_playerItemPrefab, _listPlayersContentTransform);    
+            }
+
+            string name = !pData.Data.ContainsKey("Name") ? "" : pData.Data["Name"].Value;
+            string role = !pData.Data.ContainsKey("Role") ? "" : pData.Data["Role"].Value;
+            bool isReady = !pData.Data.ContainsKey("IsReady") ? false : Convert.ToBoolean(pData.Data["IsReady"].Value);
+
+            playerItem.SetData("#" + (i + 1), name, role, isReady);
+            listPlayers.Add(playerItem);
+        }
     }
+
     public string LobbyName()
     {
         return AuthenticationService.Instance.Profile + "_lobby_" + Random.Range(1, 100);
     }
+
     public void StartHost()
     {
         try
@@ -461,18 +561,17 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         catch (Exception e)
         {
             Debug.Log(" Excep : " + e);
-
         }
+
         AsyncOperation progress = SceneManager.LoadSceneAsync(SceneGamePlayName, LoadSceneMode.Single);
 
         progress.completed += (op) =>
         {
-
             PlayerDataManager.Instance.SetStatus(PlayerStatus.InRoom);
             NetworkManager.Singleton.StartHost();
-
         };
     }
+
     public void StartClient()
     {
         PlayerDataManager.Instance.SetName(_nameTextField.text);
@@ -486,4 +585,30 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         };
     }
 
+    public async void ExitCurrentLobby()
+    {
+        /* if do this line, other client will "Lobby not found cause it've deleted" */
+        // await LobbyService.Instance.DeleteLobbyAsync(currentLobbyId); 
+        /* Remove this player out of this lobby */
+        if (lobby.Players.Count > 1)
+        {
+            await LobbyService.Instance.RemovePlayerAsync(currentLobbyId, AuthenticationService.Instance.PlayerId);
+        }
+        else
+        {
+            await LobbyService.Instance.DeleteLobbyAsync(currentLobbyId);
+        }
+
+        currentLobbyCode = null;
+        currentLobbyId = null;
+        isLobbyHost = false;
+        UpdateStatusText();
+        ListLobbies();
+        StartCoroutine(IEGetListLobbies());
+    }
+
+    public void OnApplicationQuit()
+    {
+        ExitCurrentLobby();
+    }
 }
