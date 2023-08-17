@@ -64,6 +64,7 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
     public string currentLobbyCode = "";
     public float nextHeartbeat;
     public float nextLobbyRefresh;
+    /* If Tashi has already been set as a PlayerDataObject, we can set our own PlayerDataPbject in the Lobby. */
     public bool isSetInitPlayerDataObject = true; 
     private int _playerCount = 0; /* Number player in lobby */
 
@@ -311,9 +312,9 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
 
     public async void JoinLobbyByRoomCode(string roomCode)
     {
+        NetworkManager.Singleton.StartClient();
         lobby = await LobbyService.Instance.JoinLobbyByCodeAsync(roomCode);
         
-        NetworkManager.Singleton.StartClient();
         this.currentLobbyId = lobby.Id;
         this.currentLobbyCode = lobby.LobbyCode;
         Debug.Log($"Join lobby Id {this.currentLobbyId} has code {this.currentLobbyCode}");
@@ -375,7 +376,7 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
 
     public async void CheckLobbyUpdate()
     {
-        /* If Free, not in any lobby */
+        /* If Free, not in any lobby, show suiable UI */
         if (string.IsNullOrEmpty(currentLobbyId))
         {
             this._lobbyFreeGroup.SetActive(true);
@@ -383,7 +384,7 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
             return;
         }
 
-        /* If Are in lobby */
+        /* If Are in lobby, just show suiable UI */
         this._lobbyFreeGroup.SetActive(false);
         this._inLobbyGroup.SetActive(true);
 
@@ -393,12 +394,13 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         if (Time.realtimeSinceStartup >= nextHeartbeat && isLobbyHost)
         {
             nextHeartbeat = Time.realtimeSinceStartup + 15;
+            /* Keep connection to lobby alive */
             await LobbyService.Instance.SendHeartbeatPingAsync(currentLobbyId);
         }
 
         if (Time.realtimeSinceStartup >= nextLobbyRefresh)
         {
-            this.nextLobbyRefresh = Time.realtimeSinceStartup + 2;
+            this.nextLobbyRefresh = Time.realtimeSinceStartup + 2; /* Update after every 2 seconds */
             this.LobbyUpdate();
             this.ReceiveIncomingDetail();
         }
@@ -413,6 +415,7 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
                 Count = 25,
                 Filters = new List<QueryFilter>
                 {
+                    /* Just get the lobby's available slots using the filter. */
                     new QueryFilter(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT)
                 },
                 Order = new List<QueryOrder>
@@ -422,22 +425,29 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
             };
 
             QueryResponse queryResponse = await Lobbies.Instance.QueryLobbiesAsync(queryLobbiesOptions);
-            // Debug.Log("= Lobbies found : " + queryResponse.Results.Count);
 
+            /* Disative all old lobby item in list */
             foreach (Transform child in _listLobbiesContentTransform)
             {
-                Destroy(child.gameObject);
+                child.gameObject.SetActive(false);
             }
-
             listLobbies.Clear();
+            /* Show every lobby item in list */
             int i = 0;
             foreach (Lobby lobby in queryResponse.Results)
             {
-                i++;
-                // Debug.Log($"= Lobby {lobby.Name} has max {lobby.MaxPlayers} players");
-                var lobbyItem = Instantiate(_lobbyItemPrefab, _listLobbiesContentTransform);
-                lobbyItem.SetData("#" + i, lobby.Id, lobby.LobbyCode, lobby.Name);
+                LobbyItem lobbyItem;
+                try
+                {
+                    lobbyItem = _listLobbiesContentTransform.GetChild(i).GetComponent<LobbyItem>();
+                }
+                catch (Exception)
+                {
+                    lobbyItem = Instantiate(_lobbyItemPrefab, _listLobbiesContentTransform);
+                }
+                lobbyItem.SetData("#" + (i + 1), lobby.Id, lobby.LobbyCode, lobby.Name);
                 lobbyItem.SetOnClickJoin(OnClickJoinLobby);
+                listLobbies.Add(lobbyItem);
             }
         }
         catch (Exception e)
@@ -451,7 +461,8 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
         if (string.IsNullOrEmpty(this.currentLobbyId))
             JoinLobbyByLobbyId(lobbyId);
     }
-
+    
+    /* Tashi setup/update PlayerDataObject */
     public async void LobbyUpdate()
     {
         var outgoingSessionDetails = NetworkTransport.OutgoingSessionDetails;
@@ -470,11 +481,6 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
                     isLobbyHost ? PlayerTypeInGame.Police.ToString() : PlayerTypeInGame.Thief.ToString(), false);
             }
         }
-        else
-        {
-            // Debug.Log("= PlayerData outgoingSessionDetails AddTo FALSE.");
-        }
-        
         if (isLobbyHost)
         {
             var updateLobbyOptions = new UpdateLobbyOptions();
@@ -483,15 +489,9 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
                 // Debug.Log("= Lobby outgoingSessionDetails AddTo TRUE and Update Lobby Async.");
                 lobby = await LobbyService.Instance.UpdateLobbyAsync(currentLobbyId, updateLobbyOptions);
             }
-            else
-            {
-                // Debug.Log("= Lobby outgoingSessionDetails AddTo FALSE");
-            }
         }
-        
-        
     }
-
+    /* Tashi Update/get lobby session details */
     public async void ReceiveIncomingDetail()
     {
         if (NetworkTransport.SessionHasStarted) return;
@@ -511,12 +511,13 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
             NetworkTransport.UpdateSessionDetails(incomingSessionDetails);
         }
 
-        /* Refresh List Player In Room */
+        /* Refresh List Player In Room
+         Update player state/info in room in List Player
+         */
         foreach (Transform child in _listPlayersContentTransform)
         {
             child.gameObject.SetActive(false);
         }
-
         listPlayers.Clear();
         for (int i = 0; i <= lobby.Players.Count - 1; i++)
         {
@@ -587,9 +588,7 @@ public class MenuSceneManager : Singleton<MenuSceneManager>
 
     public async void ExitCurrentLobby()
     {
-        /* if do this line, other client will "Lobby not found cause it've deleted" */
-        // await LobbyService.Instance.DeleteLobbyAsync(currentLobbyId); 
-        /* Remove this player out of this lobby */
+    /* Remove this player out of this lobby */
         if (lobby.Players.Count > 1)
         {
             await LobbyService.Instance.RemovePlayerAsync(currentLobbyId, AuthenticationService.Instance.PlayerId);

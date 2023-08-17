@@ -20,6 +20,7 @@ public class LobbyItem : MonoBehaviour {
         lobbyCodeText.text = code;
         lobbyNameText.text = name;
         lobbyId = id;
+        this.gameObject.SetActive(true);
     }
     public void SetOnClickJoin(Action<string> callback){
         onJoinClickCallback = callback;
