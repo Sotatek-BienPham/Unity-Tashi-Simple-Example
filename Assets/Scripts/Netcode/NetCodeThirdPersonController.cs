@@ -222,7 +222,7 @@ namespace StarterAssets
                 }
             }
 
-            PlayManager.Instance.PlayersList.Add(this.OwnerClientId, this);
+            // PlayManager.Instance.PlayersList.Add(this.OwnerClientId, this);  /* Move : Add when Server Scene Init in Play Manager*/
             StartLocalPlayer();
         }
 

@@ -11,7 +11,7 @@ public enum SceneName : byte
     Menu,
     CharacterSelection,
     Controls,
-    Gameplay,
+    Play,
     Victory,
     Defeat,
     //.
@@ -19,11 +19,11 @@ public enum SceneName : byte
     // Add more scenes states if needed
 };
 
-public class LoadingSceneManager : SingletonPersistent<LoadingSceneManager>
+public class LoadingSceneManager : Singleton<LoadingSceneManager>
 {
     public SceneName SceneActive => m_sceneActive;
 
-    private SceneName m_sceneActive;
+    public SceneName m_sceneActive;
 
     // After running the menu scene, which initiates this manager, we subscribe to these events
     // due to the fact that when a network session ends it cannot longer listen to them.
@@ -41,10 +41,9 @@ public class LoadingSceneManager : SingletonPersistent<LoadingSceneManager>
     // Coroutine for the loading effect. It use an alpha in out effect
     private IEnumerator Loading(SceneName sceneToLoad, bool isNetworkSessionActive)
     {
-        LoadingFadeEffect.Instance.FadeIn();
-
+        // LoadingFadeEffect.Instance.FadeIn();
         // Here the player still sees the black screen
-        yield return new WaitUntil(() => LoadingFadeEffect.s_canLoad);
+        // yield return new WaitUntil(() => LoadingFadeEffect.s_canLoad);
 
         if (isNetworkSessionActive)
         {
@@ -61,7 +60,7 @@ public class LoadingSceneManager : SingletonPersistent<LoadingSceneManager>
         // scene to load before we continue
         yield return new WaitForSeconds(1f);
 
-        LoadingFadeEffect.Instance.FadeOut();
+        // LoadingFadeEffect.Instance.FadeOut();
     }
 
     // Load the scene using the regular SceneManager, use this if there's no active network session
@@ -71,8 +70,8 @@ public class LoadingSceneManager : SingletonPersistent<LoadingSceneManager>
         switch (sceneToLoad)
         {
             case SceneName.Menu:
-                if (AudioManager.Instance != null)
-                    AudioManager.Instance.PlayMusic(AudioManager.MusicName.intro);
+                // if (AudioManager.Instance != null)
+                //     AudioManager.Instance.PlayMusic(AudioManager.MusicName.intro);
                 break;
         }
     }
@@ -97,27 +96,27 @@ public class LoadingSceneManager : SingletonPersistent<LoadingSceneManager>
 
         Enum.TryParse(sceneName, out m_sceneActive);
 
-        if (!ClientConnection.Instance.CanClientConnect(clientId))
-            return;
+        // if (!ClientConnection.Instance.CanClientConnect(clientId))
+        //     return;
 
         // What to initially do on every scene when it finishes loading
         switch (m_sceneActive)
         {
             // When a client/host connects tell the manager
             case SceneName.CharacterSelection:
-                CharacterSelectionManager.Instance.ServerSceneInit(clientId);
+                // CharacterSelectionManager.Instance.ServerSceneInit(clientId);
                 break;
 
             // When a client/host connects tell the manager to create the ship and change the music
-            case SceneName.Gameplay:
-                GameplayManager.Instance.ServerSceneInit(clientId);
+            case SceneName.Play:
+                PlayManager.Instance.ServerSceneInit(clientId);
                 break;
 
             // When a client/host connects tell the manager to create the player score ships and
             // play the right SFX
             case SceneName.Victory:
             case SceneName.Defeat:
-                EndGameManager.Instance.ServerSceneInit(clientId);
+                // EndGameManager.Instance.ServerSceneInit(clientId);
                 break;
         }
     }

@@ -17,7 +17,8 @@ public class PlayManager : NetworkBehaviour
     [SerializeField] public TextMeshProUGUI _playerStatus;
     [SerializeField] public TextMeshProUGUI _amoutPlayerOnline;
 
-    [Header("Logic Game")]
+    [Header("Logic Game")] 
+    [SerializeField] private GameObject _playerPrefab;
     [SerializeField] private Transform[] listSpawnBonusPosition; /* List positions could be choose for spawn new Bonus */
     [SerializeField] private GameObject policeBonusPrefab;
     [SerializeField] private GameObject thiefBonusPrefab;
@@ -37,6 +38,7 @@ public class PlayManager : NetworkBehaviour
     }
     Dictionary<ulong, NetCodeThirdPersonController> playersList = new Dictionary<ulong, NetCodeThirdPersonController>();
     public Dictionary<ulong, NetCodeThirdPersonController> PlayersList { get => playersList; }
+    public List<ulong> m_connectedClients = new List<ulong>();
     public CinemachineVirtualCamera PlayerFollowCamera
     {
         get
@@ -73,6 +75,31 @@ public class PlayManager : NetworkBehaviour
         if (IsServer)
         {
             SpawnBonusPrefabServerRpc();
+        }
+    }
+
+    public void ServerSceneInit(ulong clientId)
+    {
+        Debug.Log("= PlayManager ServerSceneInit : " + clientId);
+        
+        // Save the clients 
+        m_connectedClients.Add(clientId);
+        Debug.Log("= ConnectedClients.Count : " + NetworkManager.Singleton.ConnectedClients.Count);
+        // Check if is the last client
+        if (m_connectedClients.Count < NetworkManager.Singleton.ConnectedClients.Count)
+            return;
+        // For each client spawn and set UI
+        foreach (var client in m_connectedClients)
+        {
+
+            GameObject player = NetworkObjectSpawner.SpawnNewNetworkObjectAsPlayerObject(
+                _playerPrefab, policeSpawnTransform.position, client, true
+                );
+
+            NetCodeThirdPersonController playerNetCodeThirdPersonController =
+                player.GetComponent<NetCodeThirdPersonController>();
+            PlayersList.Add(client, playerNetCodeThirdPersonController);
+            
         }
     }
     public override void OnNetworkSpawn()

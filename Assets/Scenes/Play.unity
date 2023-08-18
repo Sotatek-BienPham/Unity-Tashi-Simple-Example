@@ -2249,6 +2249,8 @@ MonoBehaviour:
   uiCanvasControllerInput: {fileID: 1645078204}
   _playerStatus: {fileID: 695060809}
   _amoutPlayerOnline: {fileID: 1363838005}
+  _playerPrefab: {fileID: 4416926081852918481, guid: f7ead457c89a741a0bd6e7ad08801c73,
+    type: 3}
   listSpawnBonusPosition:
   - {fileID: 794303591}
   - {fileID: 1182660659}
@@ -2284,6 +2286,7 @@ MonoBehaviour:
   - {fileID: 437755948}
   - {fileID: 1191573503}
   - {fileID: 642418849}
+  m_connectedClients: 
 --- !u!1 &1028513131
 GameObject:
   m_ObjectHideFlags: 0
