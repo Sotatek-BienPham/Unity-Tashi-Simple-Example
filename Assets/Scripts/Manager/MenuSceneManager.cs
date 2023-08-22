@@ -12,6 +12,7 @@ using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using Random = UnityEngine.Random;
 using Tashi.NetworkTransport;
+using Unity.Collections;
 
 public class MenuSceneManager : NetworkBehaviour
 {
@@ -597,7 +598,10 @@ public class MenuSceneManager : NetworkBehaviour
 
     public void StartHost()
     {
-        LoadingSceneManager.Instance.LoadScene(SceneName.Play, true);
+        // LoadingSceneManager.Instance.LoadScene(SceneName.Play, true);
+        Debug.Log("= Start Room Clicked");
+        LoadSceneServerRpc(name);
+        
         // try
         // {
         //     PlayerDataManager.Instance.SetName(_nameTextField.text);
@@ -653,4 +657,32 @@ public class MenuSceneManager : NetworkBehaviour
     {
         ExitCurrentLobby();
     }
+
+    #region ServerRpc
+    [ServerRpc(RequireOwnership = false)]
+    private void LoadSceneServerRpc(FixedString64Bytes name)
+    {
+        Debug.Log("= ServerRpc : LoadSceneServerRpc");
+        SceneAboutToChangeClientRpc();
+        foreach(var client in NetworkManager.Singleton.ConnectedClients.Values)
+        {
+            if (client.PlayerObject != null)
+                client.PlayerObject.Despawn();
+        }
+        NetworkManager.SceneManager.LoadScene(SceneName.Play.ToString(), LoadSceneMode.Single);
+    }
+
+
+    #endregion
+
+    #region ClientRpc
+
+    [ClientRpc]
+    private void SceneAboutToChangeClientRpc()
+    {
+        Debug.Log("= ClientRpc : SceneAboutToChangeClientRpc");
+        // sceneIsLoading = true;
+    }
+
+    #endregion
 }
