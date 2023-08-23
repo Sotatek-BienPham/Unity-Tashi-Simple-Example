@@ -164,9 +164,10 @@ public class PlayManager : NetworkBehaviour
     {
         Debug.Log("== Disconnect this client ID : " + NetworkManager.Singleton.LocalClientId);
         NetworkManager.Singleton.Shutdown();
-        Cleanup();
+        
+        // Cleanup();
         PlayerDataManager.Instance.SetStatus(PlayerStatus.Offline);
-        SceneManager.LoadScene(0);
+        SceneManager.LoadScene(SceneName.Menu.ToString());
     }
     public void Cleanup()
     {
