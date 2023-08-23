@@ -1,4 +1,6 @@
+using System;
 using System.Collections;
+using Unity.Services.Core;
 using UnityEngine;
 
 /*
@@ -6,6 +8,15 @@ using UnityEngine;
 */
 public class GoToMenu : MonoBehaviour
 {
+    public void Awake()
+    {
+        UnityServicesInit();
+    }
+    private async void UnityServicesInit()
+    {
+        await UnityServices.InitializeAsync();
+    }
+
     IEnumerator Start()
     {
         // Wait for the loading scene manager to start

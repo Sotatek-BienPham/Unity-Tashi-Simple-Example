@@ -69,7 +69,7 @@ public class MenuSceneManager : NetworkBehaviour
     public float nextLobbyRefresh;
 
     /* If Tashi has already been set as a PlayerDataObject, we can set our own PlayerDataPbject in the Lobby. */
-    public bool isSetInitPlayerDataObject = true;
+    public bool isSetInitPlayerDataObject = false;
     private int _playerCount = 0; /* Number player in lobby */
 
     private int _clientCount = 0; /* total clients are connect */
@@ -82,7 +82,7 @@ public class MenuSceneManager : NetworkBehaviour
             return;
         }
         Instance = this;
-        UnityServicesInit();
+        // UnityServicesInit();
     }
 
     private async void UnityServicesInit()
@@ -562,9 +562,9 @@ public class MenuSceneManager : NetworkBehaviour
 
 
                 if (pData.Data is null) continue;
-                // Debug.Log("====== PLAYER DATA OBJECT INCOMMING DETAIL  ===== INDEX : " + i);            
-                // foreach (KeyValuePair<string, PlayerDataObject> k in pData.Data)
-                // Debug.Log($"= Key : {k.Key.ToString()} and Value = {k.Value.Value.ToString()}");
+                Debug.Log("====== PLAYER DATA OBJECT INCOMMING DETAIL  ===== INDEX : " + i);            
+                foreach (KeyValuePair<string, PlayerDataObject> k in pData.Data)
+                Debug.Log($"= Key : {k.Key.ToString()} and Value = {k.Value.Value.ToString()}");
 
                 PlayerItem playerItem;
                 try
