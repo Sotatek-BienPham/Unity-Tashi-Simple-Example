@@ -16,10 +16,10 @@ using Unity.Collections;
 
 public class MenuSceneManager : NetworkBehaviour
 {
+    [SerializeField] private bool isUsingTashi;
     public static MenuSceneManager Instance { get; private set; }
     [SerializeField] private GameObject profileMenu;
     [SerializeField] private GameObject lobbyMenu;
-    [SerializeField] private string SceneGamePlayName = "Play";
 
     [Header("Profile Menu")] [SerializeField]
     private TMP_InputField _nameTextField;
@@ -103,7 +103,7 @@ public class MenuSceneManager : NetworkBehaviour
 
         _reloadListLobbiesButton.onClick.AddListener(ListLobbies);
 
-        _startRoomButton.onClick.AddListener(StartHost);
+        _startRoomButton.onClick.AddListener(StartRoom);
         _readyRoomButton.onClick.AddListener(ToggleReadyState);
         _exitLobbyButton.onClick.AddListener(ExitCurrentLobby);
 
@@ -248,6 +248,7 @@ public class MenuSceneManager : NetworkBehaviour
 
     public async void JoinLobbyButtonClick()
     {
+        /* Start Client when Join Lobby */
         NetworkManager.Singleton.StartClient();
         lobby = await LobbyService.Instance.JoinLobbyByCodeAsync(this._roomCodeToJoinTextField.text);
 
@@ -354,7 +355,8 @@ public class MenuSceneManager : NetworkBehaviour
 
     public async void JoinLobbyByLobbyId(string lobbyId)
     {
-        NetworkManager.Singleton.StartClient();
+        /* Start Client when Join Lobby as client */
+        // NetworkManager.Singleton.StartClient();
         lobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId);
 
         this.currentLobbyId = lobby.Id;
@@ -383,7 +385,7 @@ public class MenuSceneManager : NetworkBehaviour
 
         _numberPlayerInRoomTextField.text = maxPlayerInRoom.ToString();
 
-        NetworkManager.Singleton.StartHost();
+        // NetworkManager.Singleton.StartHost();
 
         var lobbyOptions = new CreateLobbyOptions
         {
@@ -429,6 +431,7 @@ public class MenuSceneManager : NetworkBehaviour
         if (Time.realtimeSinceStartup >= nextLobbyRefresh)
         {
             this.nextLobbyRefresh = Time.realtimeSinceStartup + 2; /* Update after every 2 seconds */
+            if (!isUsingTashi) return;
             this.LobbyUpdate();
             this.ReceiveIncomingDetail();
         }
@@ -518,8 +521,13 @@ public class MenuSceneManager : NetworkBehaviour
             var updateLobbyOptions = new UpdateLobbyOptions();
             if (outgoingSessionDetails.AddTo(updateLobbyOptions))
             {
-                // Debug.Log("= Lobby outgoingSessionDetails AddTo TRUE and Update Lobby Async.");
+                Debug.Log("= Lobby outgoingSessionDetails AddTo TRUE and Update Lobby Async.");
                 lobby = await LobbyService.Instance.UpdateLobbyAsync(currentLobbyId, updateLobbyOptions);
+            }
+            else
+            {
+                Debug.Log("= Lobby outgoingSessionDetails AddTo FALSE");
+                // lobby = await LobbyService.Instance.UpdateLobbyAsync(currentLobbyId, updateLobbyOptions);
             }
         }
     }
@@ -536,6 +544,10 @@ public class MenuSceneManager : NetworkBehaviour
             lobby = await LobbyService.Instance.GetLobbyAsync(currentLobbyId);
             var incomingSessionDetails = IncomingSessionDetails.FromUnityLobby(lobby);
             this._playerCount = lobby.Players.Count;
+            if (lobby.IsLocked)
+            {
+                StartClient();
+            }
             UpdateStatusText();
 
 
@@ -596,37 +608,56 @@ public class MenuSceneManager : NetworkBehaviour
         return AuthenticationService.Instance.Profile + "_lobby_" + Random.Range(1, 100);
     }
 
+    public void StartRoom()
+    {
+        Debug.Log("= Start Room Clicked");
+        PlayerDataManager.Instance.SetName(AuthenticationService.Instance.Profile);
+        PushEventStartRoomViaLobbyData();
+        AsyncOperation progress = SceneManager.LoadSceneAsync(SceneName.Play.ToString(), LoadSceneMode.Single);
+        
+        progress.completed += (op) =>
+        {
+            NetworkManager.Singleton.StartHost();
+        };
+    }
+
+    public async void PushEventStartRoomViaLobbyData()
+    {
+        try
+        {
+            Debug.Log("PushEventStartRoomViaLobbyData : isLocked Before : " + lobby.IsLocked);
+            
+            UpdateLobbyOptions options = new UpdateLobbyOptions();
+            options.IsLocked = true;
+
+            lobby = await LobbyService.Instance.UpdateLobbyAsync(lobby.Id, options);
+            
+            Debug.Log("PushEventStartRoomViaLobbyData : isLocked After : " + lobby.IsLocked);
+        }
+        catch (LobbyServiceException e)
+        {
+            Debug.Log(e);
+        }
+    }
     public void StartHost()
     {
-        // LoadingSceneManager.Instance.LoadScene(SceneName.Play, true);
-        Debug.Log("= Start Room Clicked");
-        LoadSceneServerRpc(name);
+        Debug.Log("= Start Host Clicked");
+        PlayerDataManager.Instance.SetName(AuthenticationService.Instance.Profile);
         
-        // try
-        // {
-        //     PlayerDataManager.Instance.SetName(_nameTextField.text);
-        // }
-        // catch (Exception e)
-        // {
-        //     Debug.Log(" Excep : " + e);
-        // }
-        //
-        // AsyncOperation progress = SceneManager.LoadSceneAsync(SceneGamePlayName, LoadSceneMode.Single);
-        //
-        // progress.completed += (op) =>
-        // {
-        //     PlayerDataManager.Instance.SetStatus(PlayerStatus.InRoom);
-        //     NetworkManager.Singleton.StartHost();
-        // };
+        AsyncOperation progress = SceneManager.LoadSceneAsync(SceneName.Play.ToString(), LoadSceneMode.Single);
+        
+        progress.completed += (op) =>
+        {
+            NetworkManager.Singleton.StartHost();
+        };   
     }
 
     public void StartClient()
     {
-        PlayerDataManager.Instance.SetName(_nameTextField.text);
-        AsyncOperation progress = SceneManager.LoadSceneAsync(SceneGamePlayName, LoadSceneMode.Single);
+        PlayerDataManager.Instance.SetName(AuthenticationService.Instance.Profile);
+        AsyncOperation progress = SceneManager.LoadSceneAsync(SceneName.Play.ToString(), LoadSceneMode.Single);
         progress.completed += (op) =>
         {
-            Debug.Log($"Scene {SceneGamePlayName} loaded.");
             PlayerDataManager.Instance.SetStatus(PlayerStatus.InRoom);
             NetworkManager.Singleton.StartClient();
             Debug.Log("Started Client");
