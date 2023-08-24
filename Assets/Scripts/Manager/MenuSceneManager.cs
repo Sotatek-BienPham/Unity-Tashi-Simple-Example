@@ -431,9 +431,22 @@ public class MenuSceneManager : NetworkBehaviour
         if (Time.realtimeSinceStartup >= nextLobbyRefresh)
         {
             this.nextLobbyRefresh = Time.realtimeSinceStartup + 2; /* Update after every 2 seconds */
-            if (!isUsingTashi) return;
-            this.LobbyUpdate();
-            this.ReceiveIncomingDetail();
+            if (isUsingTashi)
+            {
+                ;
+                this.LobbyUpdate();
+                this.ReceiveIncomingDetail();
+            }
+            else
+            {
+                lobby = await LobbyService.Instance.GetLobbyAsync(currentLobbyId);
+                this._playerCount = lobby.Players.Count;
+                if (lobby.IsLocked)
+                {
+                    StartClient();
+                }
+                UpdateStatusText();
+            }
         }
     }
 
