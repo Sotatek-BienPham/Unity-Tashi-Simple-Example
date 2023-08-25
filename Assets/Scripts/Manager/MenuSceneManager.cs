@@ -60,18 +60,7 @@ public class MenuSceneManager : NetworkBehaviour
     [SerializeField] private LobbyItem _lobbyItemPrefab;
     public List<LobbyItem> listLobbies = new();
 
-    public Lobby lobby;
-    public bool isLobbyHost = false;
-    public string currentLobbyId = "";
-    public string currentLobbyCode = "";
-    public float nextHeartbeat;
-
-    public float nextLobbyRefresh;
-
-    /* If Tashi has already been set as a PlayerDataObject, we can set our own PlayerDataPbject in the Lobby. */
-    public bool isSetInitPlayerDataObject = false;
     private int _playerCount = 0; /* Number player in lobby */
-
     private int _clientCount = 0; /* total clients are connect */
 
     public void Awake()
@@ -81,6 +70,7 @@ public class MenuSceneManager : NetworkBehaviour
             Destroy(this);
             return;
         }
+
         Instance = this;
         // UnityServicesInit();
     }
@@ -105,7 +95,7 @@ public class MenuSceneManager : NetworkBehaviour
 
         _startRoomButton.onClick.AddListener(StartRoom);
         _readyRoomButton.onClick.AddListener(ToggleReadyState);
-        _exitLobbyButton.onClick.AddListener(ExitCurrentLobby);
+        _exitLobbyButton.onClick.AddListener(LobbyManager.Instance.ExitCurrentLobby);
 
         CheckAuthentication();
 
@@ -115,14 +105,16 @@ public class MenuSceneManager : NetworkBehaviour
         // Doing this because every time the network session ends the loading manager stops
         // detecting the events
         LoadingSceneManager.Instance.Init();
-        
+
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
         NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
     }
+
     private void OnClientConnected(ulong clientId)
     {
         Debug.Log($"Client ID {clientId} just Connected...");
     }
+
     private void OnClientDisconnected(ulong clientId)
     {
         Debug.Log($"Client ID {clientId} just disconnected...");
@@ -130,17 +122,23 @@ public class MenuSceneManager : NetworkBehaviour
 
     public async void ToggleReadyState()
     {
-        Lobby lobby = await LobbyService.Instance.GetLobbyAsync(currentLobbyId);
+        Lobby lobby = await LobbyService.Instance.GetLobbyAsync(LobbyManager.Instance.CurrentLobby.Id);
         Player p = lobby.Players.Find(x => x.Id == AuthenticationService.Instance.PlayerId);
         if (p is null) return;
         string _isReadyStr = p.Data["IsReady"].Value;
         bool _isReady = bool.Parse(_isReadyStr);
-        UpdatePlayerDataIsReadyInLobby(!_isReady);
+        LobbyManager.Instance.UpdatePlayerDataIsReadyInLobby(!_isReady);
     }
 
     void Update()
     {
         CheckLobbyUpdate();
+
+        CheckUpdateListRoom();
+    }
+
+    public void CheckUpdateListRoom()
+    {
     }
 
     void CheckAuthentication()
@@ -197,8 +195,8 @@ public class MenuSceneManager : NetworkBehaviour
                 UpdateStatusText();
                 profileMenu.SetActive(false);
                 lobbyMenu.SetActive(true);
-
-                ListLobbies();
+                
+                StopCoroutine(IEGetListLobbies());
                 StartCoroutine(IEGetListLobbies());
             };
 
@@ -215,14 +213,18 @@ public class MenuSceneManager : NetworkBehaviour
 
     IEnumerator IEGetListLobbies(float delayTime = 3f)
     {
-        while (AuthenticationService.Instance.IsSignedIn && string.IsNullOrEmpty(currentLobbyId))
+        while (true)
         {
+            if (AuthenticationService.Instance.IsSignedIn && AuthenticationService.Instance.IsAuthorized)
+            {
+                ListLobbies();
+            }
+
             yield return new WaitForSeconds(delayTime);
-            ListLobbies();
         }
     }
 
-    void UpdateStatusText()
+    public void UpdateStatusText()
     {
         if (AuthenticationService.Instance.IsSignedIn)
         {
@@ -236,139 +238,46 @@ public class MenuSceneManager : NetworkBehaviour
             statusText.text = "Not Sign in yet";
         }
 
-        if (string.IsNullOrEmpty(currentLobbyId) || string.IsNullOrEmpty(currentLobbyCode))
+        if (LobbyManager.Instance.CurrentLobby is null)
         {
         }
         else
         {
-            statusText.text += $"\n In Lobby ID : {currentLobbyId} has code : {currentLobbyCode}";
+            statusText.text += $"\n In Lobby ID : {LobbyManager.Instance.CurrentLobby.Id} has code : {LobbyManager.Instance.CurrentLobby.LobbyCode}";
             statusText.text += $"\n {_playerCount} players in lobby.";
         }
     }
 
     public async void JoinLobbyButtonClick()
     {
-        /* Start Client when Join Lobby */
-        NetworkManager.Singleton.StartClient();
-        lobby = await LobbyService.Instance.JoinLobbyByCodeAsync(this._roomCodeToJoinTextField.text);
-
-        
-        this.currentLobbyId = lobby.Id;
-        this.currentLobbyCode = lobby.LobbyCode;
-        Debug.Log($"Join lobby Id {this.currentLobbyId} has code {this.currentLobbyCode}");
-        this.isLobbyHost = false;
-        _roomCodeLobbyTextField.text = this.currentLobbyCode;
-        UpdateStatusText();
-        isSetInitPlayerDataObject = false;
-    }
-
-    public async void UpdatePlayerDataIsReadyInLobby(bool isReady)
-    {
-        try
-        {
-            UpdatePlayerOptions options = new UpdatePlayerOptions();
-
-            options.Data = new Dictionary<string, PlayerDataObject>()
-            {
-                {
-                    "IsReady", new PlayerDataObject(
-                        visibility: PlayerDataObject.VisibilityOptions.Public,
-                        value: isReady.ToString())
-                }
-            };
-
-            //Ensure you sign-in before calling Authentication Instance
-            //See IAuthenticationService interface
-            string playerId = AuthenticationService.Instance.PlayerId;
-
-            lobby = await LobbyService.Instance.UpdatePlayerAsync(currentLobbyId, playerId, options);
-            Debug.Log("= UpdatePlayerDataIsReadyInLobby : isReady " + isReady.ToString());
-        }
-        catch (LobbyServiceException e)
-        {
-            Debug.Log(e);
-        }
-    }
-
-    /* To update some Player Info through lobby such as name, isReady state, role */
-    public async void UpdatePlayerDataInCurrentLobby(Lobby lobby, string name, string role, bool isReady)
-    {
-        /* Add Player Data into Lobby */
-        try
-        {
-            //Ensure you sign-in before calling Authentication Instance
-            //See IAuthenticationService interface
-            string playerId = AuthenticationService.Instance.PlayerId;
-
-            /* Find PlayerData for current this Player  */
-            Player p = lobby.Players.Find(x => x.Id == playerId);
-            if (p is null) return;
-            Debug.Log("= UpdatePlayerDataInCurrentLobby : ID : " + p.Id);
-            Dictionary<string, PlayerDataObject> oldData = p.Data;
-            if (oldData is null)
-            {
-                oldData = new Dictionary<string, PlayerDataObject>();
-            }
-
-            UpdatePlayerOptions options = new UpdatePlayerOptions();
-            // options.Data = oldData; 
-            options.Data = new Dictionary<string, PlayerDataObject>();
-
-            options.Data["Name"] = new PlayerDataObject(
-                visibility: PlayerDataObject.VisibilityOptions.Public,
-                value: name);
-            options.Data["Role"] = new PlayerDataObject(
-                visibility: PlayerDataObject.VisibilityOptions.Public,
-                value: role);
-            options.Data["IsReady"] = new PlayerDataObject(
-                visibility: PlayerDataObject.VisibilityOptions.Public,
-                value: isReady.ToString());
-
-            lobby = await LobbyService.Instance.UpdatePlayerAsync(currentLobbyId, playerId, options);
-
-
-            // Debug.Log("====== PLAYER DATA OBJECT AFTER =====");
-            // foreach (KeyValuePair<string, PlayerDataObject> k in lobby.Players.Find(x=>x.Id == playerId).Data)
-            // Debug.Log($"= Key : {k.Key.ToString()} and Value = {k.Value.Value.ToString()}");
-
-            //...
-        }
-        catch (LobbyServiceException e)
-        {
-            Debug.Log(e);
-        }
-    }
-
-    public async void JoinLobbyByRoomCode(string roomCode)
-    {
-        NetworkManager.Singleton.StartClient();
-        lobby = await LobbyService.Instance.JoinLobbyByCodeAsync(roomCode);
-
-        this.currentLobbyId = lobby.Id;
-        this.currentLobbyCode = lobby.LobbyCode;
-        Debug.Log($"Join lobby Id {this.currentLobbyId} has code {this.currentLobbyCode}");
-        this.isLobbyHost = false;
-        _roomCodeLobbyTextField.text = this.currentLobbyCode;
-        UpdateStatusText();
-        isSetInitPlayerDataObject = false;
+        JoinLobbyByLobbyCode(_roomCodeToJoinTextField.text);
     }
 
     public async void JoinLobbyByLobbyId(string lobbyId)
     {
         /* Start Client when Join Lobby as client */
         // NetworkManager.Singleton.StartClient();
-        lobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId);
+        LobbyManager.Instance.CurrentLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId);
+        SetupDataAfterJoinLobby();
+    }
 
-        this.currentLobbyId = lobby.Id;
-        this.currentLobbyCode = lobby.LobbyCode;
-        Debug.Log($"Join lobby Id {this.currentLobbyId} has code {this.currentLobbyCode}");
-        this.isLobbyHost = false;
-        _roomCodeLobbyTextField.text = this.currentLobbyCode;
+    public async void JoinLobbyByLobbyCode(string lobbyCode)
+    {
+        /* Start Client when Join Lobby as client */
+        // NetworkManager.Singleton.StartClient();
+        LobbyManager.Instance.CurrentLobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode);
+
+        SetupDataAfterJoinLobby();
+    }
+
+    public void SetupDataAfterJoinLobby()
+    {
+        Debug.Log(
+            $"Join lobby Id {LobbyManager.Instance.CurrentLobby.Id} has code {LobbyManager.Instance.CurrentLobby.LobbyCode}");
+        LobbyManager.Instance.isLobbyHost = false;
+        _roomCodeLobbyTextField.text = LobbyManager.Instance.CurrentLobby.LobbyCode;
         UpdateStatusText();
-        isSetInitPlayerDataObject = false;
-
-        UpdatePlayerDataInCurrentLobby(lobby, AuthenticationService.Instance.Profile,
-            isLobbyHost ? PlayerTypeInGame.Police.ToString() : PlayerTypeInGame.Thief.ToString(), false);
+        LobbyManager.Instance.isSetInitPlayerDataObject = false;
     }
 
     public async void CreateLobby()
@@ -393,21 +302,20 @@ public class MenuSceneManager : NetworkBehaviour
         };
         string lobbyName = this.LobbyName();
 
-        lobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayerInRoom, lobbyOptions);
-        this.currentLobbyId = lobby.Id;
-        this.currentLobbyCode = lobby.LobbyCode;
-        this.isLobbyHost = true;
-        _roomCodeLobbyTextField.text = this.currentLobbyCode;
+        LobbyManager.Instance.CurrentLobby =
+            await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayerInRoom, lobbyOptions);
+        LobbyManager.Instance.isLobbyHost = true;
+        _roomCodeLobbyTextField.text = LobbyManager.Instance.CurrentLobby.LobbyCode;
         Debug.Log(
-            $"= Create Lobby name : {lobbyName} has max {maxPlayerInRoom} players. Lobby Code {this.currentLobbyCode}");
+            $"= Create Lobby name : {lobbyName} has max {maxPlayerInRoom} players. Lobby Code {LobbyManager.Instance.CurrentLobby.LobbyCode}");
         UpdateStatusText();
-        isSetInitPlayerDataObject = false;
+        LobbyManager.Instance.isSetInitPlayerDataObject = false;
     }
 
     public async void CheckLobbyUpdate()
     {
         /* If Free, not in any lobby, show suiable UI */
-        if (string.IsNullOrEmpty(currentLobbyId))
+        if (LobbyManager.Instance.CurrentLobby is null)
         {
             this._lobbyFreeGroup.SetActive(true);
             this._inLobbyGroup.SetActive(false);
@@ -418,36 +326,17 @@ public class MenuSceneManager : NetworkBehaviour
         this._lobbyFreeGroup.SetActive(false);
         this._inLobbyGroup.SetActive(true);
 
-        _startRoomButton.gameObject.SetActive(isLobbyHost);
-        _readyRoomButton.gameObject.SetActive(!isLobbyHost);
+        _startRoomButton.gameObject.SetActive(LobbyManager.Instance.isLobbyHost);
+        _readyRoomButton.gameObject.SetActive(!LobbyManager.Instance.isLobbyHost);
 
-        if (Time.realtimeSinceStartup >= nextHeartbeat && isLobbyHost)
+
+        this._playerCount = LobbyManager.Instance.CurrentLobby.Players.Count;
+        if (LobbyManager.Instance.CurrentLobby.IsLocked)
         {
-            nextHeartbeat = Time.realtimeSinceStartup + 15;
-            /* Keep connection to lobby alive */
-            await LobbyService.Instance.SendHeartbeatPingAsync(currentLobbyId);
+            StartClient();
         }
 
-        if (Time.realtimeSinceStartup >= nextLobbyRefresh)
-        {
-            this.nextLobbyRefresh = Time.realtimeSinceStartup + 2; /* Update after every 2 seconds */
-            if (isUsingTashi)
-            {
-                ;
-                this.LobbyUpdate();
-                this.ReceiveIncomingDetail();
-            }
-            else
-            {
-                lobby = await LobbyService.Instance.GetLobbyAsync(currentLobbyId);
-                this._playerCount = lobby.Players.Count;
-                if (lobby.IsLocked)
-                {
-                    StartClient();
-                }
-                UpdateStatusText();
-            }
-        }
+        UpdateStatusText();
     }
 
     public async void ListLobbies()
@@ -504,116 +393,8 @@ public class MenuSceneManager : NetworkBehaviour
 
     public void OnClickJoinLobby(string lobbyId)
     {
-        if (string.IsNullOrEmpty(this.currentLobbyId))
+        if (LobbyManager.Instance.CurrentLobby is null)
             JoinLobbyByLobbyId(lobbyId);
-    }
-
-    /* Tashi setup/update PlayerDataObject */
-    public async void LobbyUpdate()
-    {
-        var outgoingSessionDetails = NetworkTransport.OutgoingSessionDetails;
-
-        var updatePlayerOptions = new UpdatePlayerOptions();
-        if (outgoingSessionDetails.AddTo(updatePlayerOptions))
-        {
-            // Debug.Log("= PlayerData outgoingSessionDetails AddTo TRUE so can UpdatePLayerAsync");
-            lobby = await LobbyService.Instance.UpdatePlayerAsync(currentLobbyId,
-                AuthenticationService.Instance.PlayerId,
-                updatePlayerOptions);
-
-            if (isSetInitPlayerDataObject == false)
-            {
-                isSetInitPlayerDataObject = true;
-                UpdatePlayerDataInCurrentLobby(lobby, AuthenticationService.Instance.Profile,
-                    isLobbyHost ? PlayerTypeInGame.Police.ToString() : PlayerTypeInGame.Thief.ToString(), false);
-            }
-        }
-
-        if (isLobbyHost)
-        {
-            var updateLobbyOptions = new UpdateLobbyOptions();
-            if (outgoingSessionDetails.AddTo(updateLobbyOptions))
-            {
-                Debug.Log("= Lobby outgoingSessionDetails AddTo TRUE and Update Lobby Async.");
-                lobby = await LobbyService.Instance.UpdateLobbyAsync(currentLobbyId, updateLobbyOptions);
-            }
-            else
-            {
-                Debug.Log("= Lobby outgoingSessionDetails AddTo FALSE");
-                // lobby = await LobbyService.Instance.UpdateLobbyAsync(currentLobbyId, updateLobbyOptions);
-            }
-        }
-    }
-
-    /* Tashi Update/get lobby session details */
-    public async void ReceiveIncomingDetail()
-    {
-        try
-        {
-            if (NetworkTransport.SessionHasStarted) return;
-
-            // Debug.LogWarning("Receive Incoming Detail");
-
-            lobby = await LobbyService.Instance.GetLobbyAsync(currentLobbyId);
-            var incomingSessionDetails = IncomingSessionDetails.FromUnityLobby(lobby);
-            this._playerCount = lobby.Players.Count;
-            if (lobby.IsLocked)
-            {
-                StartClient();
-            }
-            UpdateStatusText();
-
-
-            // This should be replaced with whatever logic you use to determine when a lobby is locked in.
-            // if (this._playerCount > 1 && incomingSessionDetails.AddressBook.Count == lobby.Players.Count)
-            if (incomingSessionDetails.AddressBook.Count >= 2)
-            {
-                Debug.LogWarning("Update Session Details");
-                NetworkTransport.UpdateSessionDetails(incomingSessionDetails);
-            }
-
-            /* Refresh List Player In Room
-             Update player state/info in room in List Player
-             */
-            foreach (Transform child in _listPlayersContentTransform)
-            {
-                child.gameObject.SetActive(false);
-            }
-
-            listPlayers.Clear();
-            for (int i = 0; i <= lobby.Players.Count - 1; i++)
-            {
-                Player pData = lobby.Players[i];
-
-
-                if (pData.Data is null) continue;
-                Debug.Log("====== PLAYER DATA OBJECT INCOMMING DETAIL  ===== INDEX : " + i);            
-                foreach (KeyValuePair<string, PlayerDataObject> k in pData.Data)
-                Debug.Log($"= Key : {k.Key.ToString()} and Value = {k.Value.Value.ToString()}");
-
-                PlayerItem playerItem;
-                try
-                {
-                    playerItem = _listPlayersContentTransform.GetChild(i).GetComponent<PlayerItem>();
-                }
-                catch (Exception)
-                {
-                    playerItem = Instantiate(_playerItemPrefab, _listPlayersContentTransform);
-                }
-
-                string name = !pData.Data.ContainsKey("Name") ? "" : pData.Data["Name"].Value;
-                string role = !pData.Data.ContainsKey("Role") ? "" : pData.Data["Role"].Value;
-                bool isReady = !pData.Data.ContainsKey("IsReady")
-                    ? false
-                    : Convert.ToBoolean(pData.Data["IsReady"].Value);
-
-                playerItem.SetData("#" + (i + 1), name, role, isReady);
-                listPlayers.Add(playerItem);
-            }
-        }
-        catch (Exception)
-        {
-        }
     }
 
     public string LobbyName()
@@ -627,42 +408,37 @@ public class MenuSceneManager : NetworkBehaviour
         PlayerDataManager.Instance.SetName(AuthenticationService.Instance.Profile);
         PushEventStartRoomViaLobbyData();
         AsyncOperation progress = SceneManager.LoadSceneAsync(SceneName.Play.ToString(), LoadSceneMode.Single);
-        
-        progress.completed += (op) =>
-        {
-            NetworkManager.Singleton.StartHost();
-        };
+
+        progress.completed += (op) => { NetworkManager.Singleton.StartHost(); };
     }
 
     public async void PushEventStartRoomViaLobbyData()
     {
         try
         {
-            Debug.Log("PushEventStartRoomViaLobbyData : isLocked Before : " + lobby.IsLocked);
-            
+            Debug.Log("PushEventStartRoomViaLobbyData : isLocked Before : " + LobbyManager.Instance.CurrentLobby.IsLocked);
+
             UpdateLobbyOptions options = new UpdateLobbyOptions();
             options.IsLocked = true;
 
-            lobby = await LobbyService.Instance.UpdateLobbyAsync(lobby.Id, options);
-            
-            Debug.Log("PushEventStartRoomViaLobbyData : isLocked After : " + lobby.IsLocked);
+            LobbyManager.Instance.CurrentLobby = await LobbyService.Instance.UpdateLobbyAsync(LobbyManager.Instance.CurrentLobby.Id, options);
+
+            Debug.Log("PushEventStartRoomViaLobbyData : isLocked After : " + LobbyManager.Instance.CurrentLobby.IsLocked);
         }
         catch (LobbyServiceException e)
         {
             Debug.Log(e);
         }
     }
+
     public void StartHost()
     {
         Debug.Log("= Start Host Clicked");
         PlayerDataManager.Instance.SetName(AuthenticationService.Instance.Profile);
-        
+
         AsyncOperation progress = SceneManager.LoadSceneAsync(SceneName.Play.ToString(), LoadSceneMode.Single);
-        
-        progress.completed += (op) =>
-        {
-            NetworkManager.Singleton.StartHost();
-        };   
+
+        progress.completed += (op) => { NetworkManager.Singleton.StartHost(); };
     }
 
     public void StartClient()
@@ -677,45 +453,26 @@ public class MenuSceneManager : NetworkBehaviour
         };
     }
 
-    public async void ExitCurrentLobby()
-    {
-        /* Remove this player out of this lobby */
-        if (lobby.Players.Count > 1)
-        {
-            await LobbyService.Instance.RemovePlayerAsync(currentLobbyId, AuthenticationService.Instance.PlayerId);
-        }
-        else
-        {
-            await LobbyService.Instance.DeleteLobbyAsync(currentLobbyId);
-        }
-
-        currentLobbyCode = null;
-        currentLobbyId = null;
-        isLobbyHost = false;
-        UpdateStatusText();
-        ListLobbies();
-        StartCoroutine(IEGetListLobbies());
-    }
-
     public void OnApplicationQuit()
     {
-        ExitCurrentLobby();
+     
     }
 
     #region ServerRpc
+
     [ServerRpc(RequireOwnership = false)]
     private void LoadSceneServerRpc(FixedString64Bytes name)
     {
         Debug.Log("= ServerRpc : LoadSceneServerRpc");
         SceneAboutToChangeClientRpc();
-        foreach(var client in NetworkManager.Singleton.ConnectedClients.Values)
+        foreach (var client in NetworkManager.Singleton.ConnectedClients.Values)
         {
             if (client.PlayerObject != null)
                 client.PlayerObject.Despawn();
         }
+
         NetworkManager.SceneManager.LoadScene(SceneName.Play.ToString(), LoadSceneMode.Single);
     }
-
 
     #endregion
 

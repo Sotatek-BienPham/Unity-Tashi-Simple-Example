@@ -167,6 +167,7 @@ public class PlayManager : NetworkBehaviour
         
         // Cleanup();
         PlayerDataManager.Instance.SetStatus(PlayerStatus.Offline);
+        LobbyManager.Instance.ExitCurrentLobby();
         SceneManager.LoadScene(SceneName.Menu.ToString());
     }
     public void Cleanup()

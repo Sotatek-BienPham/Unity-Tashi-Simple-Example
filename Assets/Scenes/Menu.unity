@@ -8929,7 +8929,7 @@ PrefabInstance:
     - target: {fileID: 1591346826633485580, guid: f3606804d5d514d24b08a365facb1a41,
         type: 3}
       propertyPath: isUsingTashi
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1591346826633485580, guid: f3606804d5d514d24b08a365facb1a41,
         type: 3}
