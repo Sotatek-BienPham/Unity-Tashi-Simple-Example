@@ -16,7 +16,6 @@ using Unity.Collections;
 
 public class MenuSceneManager : NetworkBehaviour
 {
-    [SerializeField] private bool isUsingTashi;
     public static MenuSceneManager Instance { get; private set; }
     [SerializeField] private GameObject profileMenu;
     [SerializeField] private GameObject lobbyMenu;
@@ -73,11 +72,6 @@ public class MenuSceneManager : NetworkBehaviour
 
         Instance = this;
         // UnityServicesInit();
-    }
-
-    private async void UnityServicesInit()
-    {
-        await UnityServices.InitializeAsync();
     }
 
     public IEnumerator Start()

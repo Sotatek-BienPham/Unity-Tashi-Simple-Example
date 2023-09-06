@@ -626,6 +626,11 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 5349713810951252748, guid: 15be7e59df72b4c158bd615204498b4c,
+        type: 3}
+      propertyPath: Config.NetworkMode
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 5349713810951252749, guid: 15be7e59df72b4c158bd615204498b4c,
         type: 3}
       propertyPath: LogLevel
