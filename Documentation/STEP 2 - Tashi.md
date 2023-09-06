@@ -7,26 +7,43 @@
 - Go PackageManager and Import com.unity.multiplayer.tools Package.
 
 - In this project, for more focus and simple, I'just write almost logic and func about Logic, Authen, Lobby in MenuSceneManager.
+## Create LobbyInstance to Serialize Lobby Data - DevMode: 
+- Create class LobbyInstance like this : 
+```c# 
+[System.Serializable]
+public class LobbyInstance //Just for debug
+{
+    public string HostId, Id, LobbyCode, Upid, EnvironmentId, Name;
+    public int MaxPlayers, AvailableSlots;
+    public bool IsPrivate, IsLocked;
 
-## Create Lobby and Get Lobby update in Tashi : 
-**Overview** : Once the parameters (name, maxPlayerInRoom) have been supplied, we will construct the lobby (and start the server) and update the status once the lobby has been successfully created.
+    public LobbyInstance(Lobby lobby)
+    {
+        HostId = lobby is null ? "" : lobby.HostId;
+        Id = lobby is null ? "" : lobby.Id;
+        LobbyCode = lobby is null ? "" : lobby.LobbyCode;
+        Upid = lobby is null ? "" : lobby.Upid;
+        EnvironmentId = lobby is null ? "" : lobby.EnvironmentId;
+        Name = lobby is null ? "" : lobby.Name;
+
+        MaxPlayers = lobby is null ? 8 : lobby.MaxPlayers;
+        AvailableSlots = lobby is null ? 8 : lobby.AvailableSlots;
+
+        IsPrivate = lobby is null ? false : lobby.IsPrivate;
+        IsLocked = lobby is null ? false : lobby.IsLocked;
+    }
+}
+```
+
+## Create Lobby in Lobby Manager :
+- LobbyManager is a singleton that's created in start scene. 
+- **Overview** : Once the parameters (name, maxPlayerInRoom) have been supplied, we will construct the lobby (and start the server) and update the status once the lobby has been successfully created.
 Do a hearbeat ping in Update() to keep the lobby active.
 Update PlayerDataObject and LobbyData in Tashi by running Update OutgoingSessionDetails and Update IncomingSessionDetails.
-This page will be updated with new information about Lobby.
+This page will be updated with new information about Lobby. When lobby is running, players can change state or their data via PlayerDataObject in Lobby.
 
-- First Add `using Tashi.NetworkTransport` to MenuSceneManager.cs 
-- Define NetworkTransport and create some func to CheckLobbyUpdate for update info lobby interval : 
-```c# 
-    public TashiNetworkTransport NetworkTransport => NetworkManager.Singleton.NetworkConfig.NetworkTransport as TashiNetworkTransport;
-    public Lobby lobby;
-    public bool isLobbyHost = false;
-    public string currentLobbyId = "";
-    public string currentLobbyCode = "";
-    public float nextHeartbeat;
-    public float nextLobbyRefresh;
-    /* If Tashi has already been set as a PlayerDataObject, we can set our own PlayerDataPbject in the Lobby. */
-    public bool isSetInitPlayerDataObject = true;
-    ...
+- Create function `CreateLobby()` in `MenuSceneManager.cs`: 
+```c#
     public async void CreateLobby()
     {
         int maxPlayerInRoom = 8;
@@ -40,8 +57,8 @@ This page will be updated with new information about Lobby.
         }
 
         _numberPlayerInRoomTextField.text = maxPlayerInRoom.ToString();
-        
-        NetworkManager.Singleton.StartServer();
+
+        // NetworkManager.Singleton.StartHost();
 
         var lobbyOptions = new CreateLobbyOptions
         {
@@ -49,60 +66,52 @@ This page will be updated with new information about Lobby.
         };
         string lobbyName = this.LobbyName();
 
-        lobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayerInRoom, lobbyOptions);
-        this.currentLobbyId = lobby.Id;
-        this.currentLobbyCode = lobby.LobbyCode;
-        this.isLobbyHost = true;
-        _roomCodeLobbyTextField.text = this.currentLobbyCode;
+        LobbyManager.Instance.CurrentLobby =
+            await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayerInRoom, lobbyOptions);
+        LobbyManager.Instance.isLobbyHost = true;
+        _roomCodeLobbyTextField.text = LobbyManager.Instance.CurrentLobby.LobbyCode;
         Debug.Log(
-            $"= Create Lobby name : {lobbyName} has max {maxPlayerInRoom} players. Lobby Code {this.currentLobbyCode}");
+            $"= Create Lobby name : {lobbyName} has max {maxPlayerInRoom} players. Lobby Code {LobbyManager.Instance.CurrentLobby.LobbyCode}");
         UpdateStatusText();
-        isSetInitPlayerDataObject = false;
+        LobbyManager.Instance.isSetInitPlayerDataObject = false;
     }
-    void UpdateStatusText()
+```
+- First import `using Tashi.NetworkTransport` to LobbyManager.cs 
+- Define NetworkTransport and create some func to CheckLobbyUpdate for update info lobby interval : 
+```c# 
+    private TashiNetworkTransport NetworkTransport => NetworkManager.Singleton.NetworkConfig.NetworkTransport as TashiNetworkTransport;
+    private Lobby _lobby;
+    public Lobby CurrentLobby
     {
-        if (AuthenticationService.Instance.IsSignedIn)
-        {
-            statusText.text = $"Signed in as {AuthenticationService.Instance.Profile} (ID:{AuthenticationService.Instance.PlayerId}) in Lobby";
-            // Shows how to get an access token
-            statusText.text += $"\n{_clientCount} peer connections";
-        }
-        else
-        {
-            statusText.text = "Not Sign in yet";
-        }
-        if (string.IsNullOrEmpty(currentLobbyId) || string.IsNullOrEmpty(currentLobbyCode))
-        {
-        }
-        else
-        {
-            statusText.text += $"\n In Lobby ID : {currentLobbyId} has code : {currentLobbyCode}";
-            statusText.text += $"\n {_playerCount} players in lobby.";
+        get {return _lobby; }
+        set { _lobby = value;
+            SerializeFieldLobby = new LobbyInstance(_lobby);
         }
     }
-    void Update(){
-        this.CheckLobbyUpdate();
+    public LobbyInstance SerializeFieldLobby;
+    public bool isLobbyHost = false;
+    public float nextHeartbeat; /* Time send heart beat to keep connection to lobby alive */
+    public float nextLobbyRefresh; /* Time get update lobby info */
+    /* If Tashi has already been set as a PlayerDataObject, we can set our own PlayerDataPbject in the Lobby. */
+    public bool isSetInitPlayerDataObject = false;
+
+    ...
+    private void Update()
+    {
+        CheckLobbyUpdate();
     }
-    public async void CheckLobbyUpdate(){
-        /* If Free, not in any lobby, show suiable UI */
-        if (string.IsNullOrEmpty(currentLobbyId))
+    public async void CheckLobbyUpdate()
+    {
+        if (CurrentLobby is null) return;
+        if (Time.realtimeSinceStartup >= nextHeartbeat && isLobbyHost)
         {
-            this._lobbyFreeGroup.SetActive(true);
-            this._inLobbyGroup.SetActive(false);
-            return;
-        }
-
-        /* If Are in lobby, just show suiable UI */
-        this._lobbyFreeGroup.SetActive(false);
-        this._inLobbyGroup.SetActive(true);
-
-        if(Time.realtimeSinceStartup >= nextHeartbeat && isLobbyHost){
             nextHeartbeat = Time.realtimeSinceStartup + 15;
             /* Keep connection to lobby alive */
-            await LobbyService.Instance.SendHeartbeatPingAsync(currentLobbyId);
+            await LobbyService.Instance.SendHeartbeatPingAsync(CurrentLobby.Id);
         }
 
-        if(Time.realtimeSinceStartup >= nextLobbyRefresh){
+        if (Time.realtimeSinceStartup >= nextLobbyRefresh)
+        {
             this.nextLobbyRefresh = Time.realtimeSinceStartup + 2; /* Update after every 2 seconds */
             this.LobbyUpdate();
             this.ReceiveIncomingDetail();
@@ -117,83 +126,46 @@ This page will be updated with new information about Lobby.
         if (outgoingSessionDetails.AddTo(updatePlayerOptions))
         {
             // Debug.Log("= PlayerData outgoingSessionDetails AddTo TRUE so can UpdatePLayerAsync");
-            lobby = await LobbyService.Instance.UpdatePlayerAsync(currentLobbyId, AuthenticationService.Instance.PlayerId,
+            CurrentLobby = await LobbyService.Instance.UpdatePlayerAsync(CurrentLobby.Id,
+                AuthenticationService.Instance.PlayerId,
                 updatePlayerOptions);
-            
+
             if (isSetInitPlayerDataObject == false)
             {
                 isSetInitPlayerDataObject = true;
-                UpdatePlayerDataInCurrentLobby(lobby, AuthenticationService.Instance.Profile,
+                UpdatePlayerDataInCurrentLobby(CurrentLobby, AuthenticationService.Instance.Profile,
                     isLobbyHost ? PlayerTypeInGame.Police.ToString() : PlayerTypeInGame.Thief.ToString(), false);
             }
         }
+
         if (isLobbyHost)
         {
             var updateLobbyOptions = new UpdateLobbyOptions();
             if (outgoingSessionDetails.AddTo(updateLobbyOptions))
             {
-                // Debug.Log("= Lobby outgoingSessionDetails AddTo TRUE and Update Lobby Async.");
-                lobby = await LobbyService.Instance.UpdateLobbyAsync(currentLobbyId, updateLobbyOptions);
+                CurrentLobby = await LobbyService.Instance.UpdateLobbyAsync(CurrentLobby.Id, updateLobbyOptions);
             }
         }
     }
     /* Tashi Update/get lobby session details */
     public async void ReceiveIncomingDetail()
     {
-        if (NetworkTransport.SessionHasStarted) return;
-
-        Debug.LogWarning("Receive Incoming Detail");
-
-        lobby = await LobbyService.Instance.GetLobbyAsync(currentLobbyId);
-        var incomingSessionDetails = IncomingSessionDetails.FromUnityLobby(lobby);
-        this._playerCount = lobby.Players.Count;
-        UpdateStatusText();
-
-
-        // This should be replaced with whatever logic you use to determine when a lobby is locked in.
-        if (this._playerCount > 1 && incomingSessionDetails.AddressBook.Count == lobby.Players.Count)
+        try
         {
-            Debug.LogWarning("Update Session Details");
-            NetworkTransport.UpdateSessionDetails(incomingSessionDetails);
-        }
+            if (NetworkTransport.SessionHasStarted) return;
+            CurrentLobby = await LobbyService.Instance.GetLobbyAsync(CurrentLobby.Id);
+            var incomingSessionDetails = IncomingSessionDetails.FromUnityLobby(CurrentLobby);
 
-        /* Refresh List Player In Room
-         Update player state/info in room in List Player
-         */
-        foreach (Transform child in _listPlayersContentTransform)
-        {
-            child.gameObject.SetActive(false);
-        }
-        listPlayers.Clear();
-        for (int i = 0; i <= lobby.Players.Count - 1; i++)
-        {
-            Player pData = lobby.Players[i];
-            Debug.Log("====== PLAYER DATA OBJECT INCOMMING DETAIL  ===== INDEX : " + i);
-            
-            if (pData.Data is null) continue;
-            
-            foreach (KeyValuePair<string, PlayerDataObject> k in pData.Data)
-                Debug.Log($"= Key : {k.Key.ToString()} and Value = {k.Value.Value.ToString()}");
-
-            PlayerItem playerItem;
-            try
+            // This should be replaced with whatever logic you use to determine when a lobby is locked in.
+            if (incomingSessionDetails.AddressBook.Count >= 2)
             {
-                playerItem = _listPlayersContentTransform.GetChild(i).GetComponent<PlayerItem>();
+                NetworkTransport.UpdateSessionDetails(incomingSessionDetails);
             }
-            catch (Exception)
-            {
-                playerItem = Instantiate(_playerItemPrefab, _listPlayersContentTransform);    
-            }
-
-            string name = !pData.Data.ContainsKey("Name") ? "" : pData.Data["Name"].Value;
-            string role = !pData.Data.ContainsKey("Role") ? "" : pData.Data["Role"].Value;
-            bool isReady = !pData.Data.ContainsKey("IsReady") ? false : Convert.ToBoolean(pData.Data["IsReady"].Value);
-
-            playerItem.SetData("#" + (i + 1), name, role, isReady);
-            listPlayers.Add(playerItem);
+        }
+        catch (Exception)
+        {
         }
     }
-
 ```
 
 ## Get List lobbies existing and Join Lobby : 

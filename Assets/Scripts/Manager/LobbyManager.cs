@@ -23,8 +23,8 @@ public class LobbyManager : Singleton<LobbyManager>
     }
     public LobbyInstance SerializeFieldLobby;
     public bool isLobbyHost = false;
-    public float nextHeartbeat;
-    public float nextLobbyRefresh;
+    public float nextHeartbeat; /* Time send heart beat to keep connection to lobby alive */
+    public float nextLobbyRefresh; /* Time get update lobby info */
     /* If Tashi has already been set as a PlayerDataObject, we can set our own PlayerDataPbject in the Lobby. */
     public bool isSetInitPlayerDataObject = false;
 
@@ -87,19 +87,14 @@ public class LobbyManager : Singleton<LobbyManager>
         try
         {
             if (NetworkTransport.SessionHasStarted) return;
-
-            // Debug.LogWarning("Receive Incoming Detail");
-
             CurrentLobby = await LobbyService.Instance.GetLobbyAsync(CurrentLobby.Id);
             var incomingSessionDetails = IncomingSessionDetails.FromUnityLobby(CurrentLobby);
 
             // This should be replaced with whatever logic you use to determine when a lobby is locked in.
-            // if (this._playerCount > 1 && incomingSessionDetails.AddressBook.Count == lobby.Players.Count)
-            if (incomingSessionDetails.AddressBook.Count == 2)
+            if (incomingSessionDetails.AddressBook.Count >= 2)
             {
                 NetworkTransport.UpdateSessionDetails(incomingSessionDetails);
             }
-
         }
         catch (Exception)
         {
@@ -140,13 +135,6 @@ public class LobbyManager : Singleton<LobbyManager>
                 value: isReady.ToString());
 
             CurrentLobby = await LobbyService.Instance.UpdatePlayerAsync(CurrentLobby.Id, playerId, options);
-
-
-            // Debug.Log("====== PLAYER DATA OBJECT AFTER =====");
-            // foreach (KeyValuePair<string, PlayerDataObject> k in lobby.Players.Find(x=>x.Id == playerId).Data)
-            // Debug.Log($"= Key : {k.Key.ToString()} and Value = {k.Value.Value.ToString()}");
-
-            //...
         }
         catch (LobbyServiceException e)
         {
