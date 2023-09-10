@@ -325,7 +325,7 @@ This page will be updated with new information about Lobby. When lobby is runnin
     }
 }
 ```
-
+- Next, add a function to `Update()` in `MenuSceneManager.cs` that checks to see if you are in the room, sets List Player in Room to data, and displays list player in UI if you are. 
 - **Notice** : _PlayerDataObject in Lobby, when you LobbyService.Instance.UpdatePlayerAsync(currentLobbyId, playerId, options) , it's just update which param you put in the options, event if you create new options, old data still exist if you dont remove or change it._
 
 ## Exit Current Room :
