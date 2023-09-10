@@ -170,7 +170,6 @@ public class LobbyManager : Singleton<LobbyManager>
     }
     public async void ExitCurrentLobby()
     {
-        Debug.Log("ExitCurrentLobby");
         if (CurrentLobby == null) return;
         /* Remove this player out of this lobby */
         if (CurrentLobby.Players.Count > 1)

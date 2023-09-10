@@ -77,7 +77,7 @@ This page will be updated with new information about Lobby. When lobby is runnin
     }
 ```
 - First import `using Tashi.NetworkTransport` to LobbyManager.cs 
-- Define NetworkTransport and create some func to CheckLobbyUpdate for update info lobby interval : 
+- Define `NetworkTransport` and create some func to `CheckLobbyUpdate` for update info lobby interval in `LobbyManager.cs`: 
 ```c# 
     private TashiNetworkTransport NetworkTransport => NetworkManager.Singleton.NetworkConfig.NetworkTransport as TashiNetworkTransport;
     private Lobby _lobby;
@@ -167,86 +167,60 @@ This page will be updated with new information about Lobby. When lobby is runnin
         }
     }
 ```
+- Beside that, in `MenuSceneManager.cs`, `CheckLobbyUpdate()` in `Update()` for reload state lobby everytime : 
+```c#
+    void Update()
+    {
+        CheckLobbyUpdate();
+
+        CheckUpdateListRoom();
+    }
+    public async void CheckLobbyUpdate()
+    {
+        /* If Free, not in any lobby, show suiable UI */
+        if (LobbyManager.Instance.CurrentLobby is null)
+        {
+            this._lobbyFreeGroup.SetActive(true);
+            this._inLobbyGroup.SetActive(false);
+            return;
+        }
+
+        /* If Are in lobby, just show suiable UI */
+        this._lobbyFreeGroup.SetActive(false);
+        this._inLobbyGroup.SetActive(true);
+
+        _startRoomButton.gameObject.SetActive(LobbyManager.Instance.isLobbyHost);
+        _readyRoomButton.gameObject.SetActive(!LobbyManager.Instance.isLobbyHost);
+
+
+        this._playerCount = LobbyManager.Instance.CurrentLobby.Players.Count;
+        /* Check if CurrentLobby has IsLocked = true, so it's ready to start game  */
+        if (LobbyManager.Instance.CurrentLobby.IsLocked)
+        {
+            StartClient();
+        }
+        /* Update some status text in UI :  */
+        UpdateStatusText();
+    }
+```
 
 ## Get List lobbies existing and Join Lobby : 
-- First of all, create UI List lobby include : List Lobby, Lobby Item, UI In lobby, UI Free Not in Lobby.
-- In MenuSceneManager.cs,  : 
-```c# 
-    using Unity.Services.Lobbies.Models;
-    
-    [SerializeField] private GameObject profileMenu;
-    [SerializeField] private GameObject lobbyMenu;
-    [SerializeField] private string SceneGamePlayName = "PlayScene";
-
-    [Header("Profile Menu")] [SerializeField]
-    private TMP_InputField _nameTextField;
-
-    [SerializeField] private TextMeshProUGUI statusText;
-    [SerializeField] private Button signInButton;
-
-    public TashiNetworkTransport NetworkTransport =>
-        NetworkManager.Singleton.NetworkConfig.NetworkTransport as TashiNetworkTransport;
-
-    [Header("Lobby Menu")] [SerializeField]
-    private TMP_InputField _numberPlayerInRoomTextField;
-
-    [SerializeField] private TMP_InputField _roomCodeToJoinTextField;
-    [SerializeField] private TMP_InputField _roomCodeLobbyTextField; /* room code of lobby you are in */
-
-
-    [SerializeField]
-    private GameObject _lobbyFreeGroup; /* Include buttons, components when are free, not in any lobby or room */
-
-    [SerializeField] private GameObject _inLobbyGroup; /* Include buttons, components when are in lobby */
-    [SerializeField] private Button _createLobbyButton;
-    [SerializeField] private Button _joinLobbyButton;
-    [SerializeField] private Button _exitLobbyButton;
-    [SerializeField] private Button _startRoomButton;
-    [SerializeField] private Button _readyRoomButton;
-
-    [Header("List PLayers in Room")] [SerializeField]
-    private Transform _listPlayersContentTransform;
-
-    [SerializeField] private PlayerItem _playerItemPrefab;
-    public List<PlayerItem> listPlayers = new();
-
+- First of all, create UI List lobby include : List Lobby, Lobby Item, UI In lobby and in room, UI when in lobby but not in room. 
+![ui_lobby_1.png](images/ui_lobby_1.png)
+- In `MenuSceneManager.cs`, define some variables for that list lobby : 
+```c#
+    ... 
     [Header("List Lobbies")] [SerializeField]
-    private Button _reloadListLobbiesButton;
-
+    /* Transform of Gameobject that'll contain list lobby item */
     [SerializeField] private Transform _listLobbiesContentTransform;
+    /* Lobby Item prefab */
     [SerializeField] private LobbyItem _lobbyItemPrefab;
+    /* List store all lobby item created */
     public List<LobbyItem> listLobbies = new();
-
-    public async void JoinLobbyByRoomCode(string roomCode)
-    {
-        NetworkManager.Singleton.StartClient();
-        lobby = await LobbyService.Instance.JoinLobbyByCodeAsync(roomCode);
-        
-        this.currentLobbyId = lobby.Id;
-        this.currentLobbyCode = lobby.LobbyCode;
-        Debug.Log($"Join lobby Id {this.currentLobbyId} has code {this.currentLobbyCode}");
-        this.isLobbyHost = false;
-        _roomCodeLobbyTextField.text = this.currentLobbyCode;
-        UpdateStatusText();
-        isSetInitPlayerDataObject = false;
-    }
-
-    public async void JoinLobbyByLobbyId(string lobbyId)
-    {
-        NetworkManager.Singleton.StartClient();
-        lobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId);
-        
-        this.currentLobbyId = lobby.Id;
-        this.currentLobbyCode = lobby.LobbyCode;
-        Debug.Log($"Join lobby Id {this.currentLobbyId} has code {this.currentLobbyCode}");
-        this.isLobbyHost = false;
-        _roomCodeLobbyTextField.text = this.currentLobbyCode;
-        UpdateStatusText();
-        isSetInitPlayerDataObject = false;
-        
-        UpdatePlayerDataInCurrentLobby(lobby, AuthenticationService.Instance.Profile,
-            isLobbyHost ? PlayerTypeInGame.Police.ToString() : PlayerTypeInGame.Thief.ToString(), false);
-    }
+    ...
+```
+- In `MenuSceneManager.cs`, create func to Get List Lobbies : 
+```c# 
     public async void ListLobbies()
     {
         try
@@ -272,6 +246,7 @@ This page will be updated with new information about Lobby. When lobby is runnin
             {
                 child.gameObject.SetActive(false);
             }
+
             listLobbies.Clear();
             /* Show every lobby item in list */
             int i = 0;
@@ -286,6 +261,7 @@ This page will be updated with new information about Lobby. When lobby is runnin
                 {
                     lobbyItem = Instantiate(_lobbyItemPrefab, _listLobbiesContentTransform);
                 }
+
                 lobbyItem.SetData("#" + (i + 1), lobby.Id, lobby.LobbyCode, lobby.Name);
                 lobbyItem.SetOnClickJoin(OnClickJoinLobby);
                 listLobbies.Add(lobbyItem);
@@ -300,6 +276,14 @@ This page will be updated with new information about Lobby. When lobby is runnin
 - Dont forget add onClick.AddListener for all your button with suitable func.
 - When you already sign in and not in any lobby, so call get list lobbies and after a time call func to get list lobbies look like realtime : 
 ```c# 
+    ...
+        AuthenticationService.Instance.SignedIn += delegate
+            {
+                ...
+                StopCoroutine(IEGetListLobbies()); // Stop old Coroutine if exist
+                StartCoroutine(IEGetListLobbies());  // Start new Coroutine
+            }
+    ...
     IEnumerator IEGetListLobbies(float delayTime = 3f){
         while(AuthenticationService.Instance.IsSignedIn && string.IsNullOrEmpty(currentLobbyId)){
             yield return new WaitForSeconds(delayTime);
@@ -309,7 +293,7 @@ This page will be updated with new information about Lobby. When lobby is runnin
 ```
 
 ## Create List Player In Room : Name, State 
-- Define some variable to control list player data in MenuSceneManager: 
+- Define some variable to control list player data in `MenuSceneManager`: 
 ```c# 
     [Header("List PLayers in Room")]
     [SerializeField] private Transform _listPlayersContentTransform;
@@ -325,10 +309,6 @@ This page will be updated with new information about Lobby. When lobby is runnin
     [SerializeField] public Image readyImage;
     [SerializeField] public Sprite isReadyImage;
     [SerializeField] public Sprite isNotReadyImage;
-
-    void Start(){
-        
-    }
     public void SetData(string stt,string name, PlayerTypeInGame role, bool isReady = false){
         sttText.text = stt;
         nameText.text = name;
@@ -348,27 +328,30 @@ This page will be updated with new information about Lobby. When lobby is runnin
 
 - **Notice** : _PlayerDataObject in Lobby, when you LobbyService.Instance.UpdatePlayerAsync(currentLobbyId, playerId, options) , it's just update which param you put in the options, event if you create new options, old data still exist if you dont remove or change it._
 
+## Exit Current Room :
+
 - Exit lobby : apply for both clients and host. If you are host and leave lobby, one of client left will become the host. 
 ```c# 
     public async void ExitCurrentLobby()
     {
+        if (CurrentLobby == null) return;
         /* Remove this player out of this lobby */
-        if (lobby.Players.Count > 1)
+        if (CurrentLobby.Players.Count > 1)
         {
-            await LobbyService.Instance.RemovePlayerAsync(currentLobbyId, AuthenticationService.Instance.PlayerId);
+            await LobbyService.Instance.RemovePlayerAsync(CurrentLobby.Id, AuthenticationService.Instance.PlayerId);
         }
         else
         {
-            await LobbyService.Instance.DeleteLobbyAsync(currentLobbyId);
+            await LobbyService.Instance.DeleteLobbyAsync(CurrentLobby.Id);
         }
 
-        currentLobbyCode = null;
-        currentLobbyId = null;
         isLobbyHost = false;
-        UpdateStatusText();
-        ListLobbies();
-        StartCoroutine(IEGetListLobbies());
-    } 
+        CurrentLobby = null;
+        NetworkManager.Singleton.Shutdown();
+        
+        if(MenuSceneManager.Instance is not null)
+            MenuSceneManager.Instance.UpdateStatusText();
+    }
     public void OnApplicationQuit()
     {
         ExitCurrentLobby();

@@ -3544,12 +3544,12 @@ GameObject:
   - component: {fileID: 745769358}
   - component: {fileID: 745769359}
   m_Layer: 5
-  m_Name: Start Host
+  m_Name: Start Host Test
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &745769354
 RectTransform:
   m_ObjectHideFlags: 0
@@ -6586,12 +6586,12 @@ GameObject:
   - component: {fileID: 1483040397}
   - component: {fileID: 1483040398}
   m_Layer: 5
-  m_Name: Start Client
+  m_Name: Start Client Test
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1483040393
 RectTransform:
   m_ObjectHideFlags: 0

@@ -55,8 +55,11 @@ public class MenuSceneManager : NetworkBehaviour
     [Header("List Lobbies")] [SerializeField]
     private Button _reloadListLobbiesButton;
 
+    /* Transform of Gameobject that'll contain list lobby item */
     [SerializeField] private Transform _listLobbiesContentTransform;
+    /* Lobby Item prefab */
     [SerializeField] private LobbyItem _lobbyItemPrefab;
+    /* List store all lobby item created */
     public List<LobbyItem> listLobbies = new();
 
     private int _playerCount = 0; /* Number player in lobby */
@@ -325,11 +328,13 @@ public class MenuSceneManager : NetworkBehaviour
 
 
         this._playerCount = LobbyManager.Instance.CurrentLobby.Players.Count;
+        
+        /* Check if CurrentLobby has IsLocked = true, so it's ready to start game  */
         if (LobbyManager.Instance.CurrentLobby.IsLocked)
         {
             StartClient();
         }
-
+        /* Update some status text in UI :  */
         UpdateStatusText();
     }
 
