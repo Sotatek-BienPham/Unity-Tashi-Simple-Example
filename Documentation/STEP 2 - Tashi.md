@@ -206,7 +206,7 @@ This page will be updated with new information about Lobby. When lobby is runnin
 
 ## Get List lobbies existing and Join Lobby : 
 - First of all, create UI List lobby include : List Lobby, Lobby Item, UI In lobby and in room, UI when in lobby but not in room. 
-![ui_lobby_1.png](images/ui_lobby_1.png)
+![ui_lobby_1.png](Images/ui_lobby_1.png)
 - In `MenuSceneManager.cs`, define some variables for that list lobby : 
 ```c#
     ... 
