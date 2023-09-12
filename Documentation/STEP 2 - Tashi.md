@@ -325,6 +325,62 @@ This page will be updated with new information about Lobby. When lobby is runnin
     }
 }
 ```
+### Reload list player in room : 
+- In `MenuSceneManager.cs`, start a coroutine to reload list player in room via PLayerDataObject in LobbyData : 
+```c#
+public IEnumerator IECheckUpdateListPLayerInRoom()
+    {
+        while (true)
+        {
+            yield return new WaitForSeconds(1f);
+            if (AuthenticationService.Instance.IsSignedIn && LobbyManager.Instance.CurrentLobby is not null &&
+                !string.IsNullOrEmpty(LobbyManager.Instance.CurrentLobby.Id))
+            {
+                /* Disative all old lobby item in list */
+                foreach (Transform child in _listPlayersContentTransform)
+                {
+                    child.gameObject.SetActive(false);
+                }
+
+                listPlayers.Clear();
+                /* Show every lobby item in list */
+                int i = 0;
+
+                foreach (Player p in LobbyManager.Instance.CurrentLobby.Players)
+                {
+                    try
+                    {
+                        if (p.Data["Name"] != null && p.Data["Role"] != null && p.Data["IsReady"] != null)
+                        {
+                            i++;
+                            PlayerItem playerItem;
+                            try
+                            {
+                                playerItem = _listPlayersContentTransform.GetChild(i).GetComponent<PlayerItem>();
+                            }
+                            catch (Exception)
+                            {
+                                playerItem = Instantiate(_playerItemPrefab, _listPlayersContentTransform);
+                            }
+
+                            playerItem.SetData("#" + (i), p.Data["Name"].Value, p.Data["Role"].Value.ToString(),
+                                bool.Parse(p.Data["IsReady"].Value));
+                            listPlayers.Add(playerItem);
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        continue;
+                    }
+                }
+            }
+        }
+    } 
+```
 - Next, add a function to `Update()` in `MenuSceneManager.cs` that checks to see if you are in the room, sets List Player in Room to data, and displays list player in UI if you are. 
 - **Notice** : _PlayerDataObject in Lobby, when you LobbyService.Instance.UpdatePlayerAsync(currentLobbyId, playerId, options) , it's just update which param you put in the options, event if you create new options, old data still exist if you dont remove or change it._
 
@@ -346,6 +402,7 @@ This page will be updated with new information about Lobby. When lobby is runnin
         }
 
         isLobbyHost = false;
+        isSetInitPlayerDataObject = false;
         CurrentLobby = null;
         NetworkManager.Singleton.Shutdown();
         

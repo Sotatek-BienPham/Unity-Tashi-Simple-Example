@@ -57,8 +57,10 @@ public class MenuSceneManager : NetworkBehaviour
 
     /* Transform of Gameobject that'll contain list lobby item */
     [SerializeField] private Transform _listLobbiesContentTransform;
+
     /* Lobby Item prefab */
     [SerializeField] private LobbyItem _lobbyItemPrefab;
+
     /* List store all lobby item created */
     public List<LobbyItem> listLobbies = new();
 
@@ -130,12 +132,65 @@ public class MenuSceneManager : NetworkBehaviour
     void Update()
     {
         CheckLobbyUpdate();
-
-        CheckUpdateListRoom();
     }
 
-    public void CheckUpdateListRoom()
+    public IEnumerator IECheckUpdateListPLayerInRoom()
     {
+        while (true)
+        {
+            yield return new WaitForSeconds(1f);
+            if (AuthenticationService.Instance.IsSignedIn && LobbyManager.Instance.CurrentLobby is not null &&
+                !string.IsNullOrEmpty(LobbyManager.Instance.CurrentLobby.Id))
+            {
+                // Debug.Log("= IECheckUpdateListPLayerInRoom");
+                /* Disative all old lobby item in list */
+                foreach (Transform child in _listPlayersContentTransform)
+                {
+                    child.gameObject.SetActive(false);
+                }
+
+                listPlayers.Clear();
+                /* Show every lobby item in list */
+                int i = 0;
+
+                foreach (Player p in LobbyManager.Instance.CurrentLobby.Players)
+                {
+                    try
+                    {
+                        // Debug.Log("====== PLAYER DATA OBJECT AFTER =====");
+                        // foreach (KeyValuePair<string, PlayerDataObject> k in p.Data)
+                        //     Debug.Log($"= Key : {k.Key.ToString()} and Value = {k.Value.Value.ToString()}");
+
+                        if (p.Data["Name"] != null && p.Data["Role"] != null && p.Data["IsReady"] != null)
+                        {
+                            i++;
+                            PlayerItem playerItem;
+                            try
+                            {
+                                playerItem = _listPlayersContentTransform.GetChild(i).GetComponent<PlayerItem>();
+                            }
+                            catch (Exception)
+                            {
+                                playerItem = Instantiate(_playerItemPrefab, _listPlayersContentTransform);
+                            }
+
+                            playerItem.SetData("#" + (i), p.Data["Name"].Value, p.Data["Role"].Value.ToString(),
+                                bool.Parse(p.Data["IsReady"].Value));
+                            listPlayers.Add(playerItem);
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        // Debug.Log("== Error when show list player : " + e.ToString());
+                        continue;
+                    }
+                }
+            }
+        }
     }
 
     void CheckAuthentication()
@@ -192,9 +247,12 @@ public class MenuSceneManager : NetworkBehaviour
                 UpdateStatusText();
                 profileMenu.SetActive(false);
                 lobbyMenu.SetActive(true);
-                
+
                 StopCoroutine(IEGetListLobbies());
                 StartCoroutine(IEGetListLobbies());
+                
+                StopCoroutine(IECheckUpdateListPLayerInRoom());
+                StartCoroutine(IECheckUpdateListPLayerInRoom());
             };
 
             await AuthenticationService.Instance.SignInAnonymouslyAsync();
@@ -240,7 +298,8 @@ public class MenuSceneManager : NetworkBehaviour
         }
         else
         {
-            statusText.text += $"\n In Lobby ID : {LobbyManager.Instance.CurrentLobby.Id} has code : {LobbyManager.Instance.CurrentLobby.LobbyCode}";
+            statusText.text +=
+                $"\n In Lobby ID : {LobbyManager.Instance.CurrentLobby.Id} has code : {LobbyManager.Instance.CurrentLobby.LobbyCode}";
             statusText.text += $"\n {_playerCount} players in lobby.";
         }
     }
@@ -328,12 +387,13 @@ public class MenuSceneManager : NetworkBehaviour
 
 
         this._playerCount = LobbyManager.Instance.CurrentLobby.Players.Count;
-        
+
         /* Check if CurrentLobby has IsLocked = true, so it's ready to start game  */
         if (LobbyManager.Instance.CurrentLobby.IsLocked)
         {
             StartClient();
         }
+
         /* Update some status text in UI :  */
         UpdateStatusText();
     }
@@ -415,14 +475,17 @@ public class MenuSceneManager : NetworkBehaviour
     {
         try
         {
-            Debug.Log("PushEventStartRoomViaLobbyData : isLocked Before : " + LobbyManager.Instance.CurrentLobby.IsLocked);
+            Debug.Log("PushEventStartRoomViaLobbyData : isLocked Before : " +
+                      LobbyManager.Instance.CurrentLobby.IsLocked);
 
             UpdateLobbyOptions options = new UpdateLobbyOptions();
             options.IsLocked = true;
 
-            LobbyManager.Instance.CurrentLobby = await LobbyService.Instance.UpdateLobbyAsync(LobbyManager.Instance.CurrentLobby.Id, options);
+            LobbyManager.Instance.CurrentLobby =
+                await LobbyService.Instance.UpdateLobbyAsync(LobbyManager.Instance.CurrentLobby.Id, options);
 
-            Debug.Log("PushEventStartRoomViaLobbyData : isLocked After : " + LobbyManager.Instance.CurrentLobby.IsLocked);
+            Debug.Log(
+                "PushEventStartRoomViaLobbyData : isLocked After : " + LobbyManager.Instance.CurrentLobby.IsLocked);
         }
         catch (LobbyServiceException e)
         {
@@ -454,7 +517,6 @@ public class MenuSceneManager : NetworkBehaviour
 
     public void OnApplicationQuit()
     {
-     
     }
 
     #region ServerRpc

@@ -63,14 +63,15 @@ public class LobbyManager : Singleton<LobbyManager>
                 AuthenticationService.Instance.PlayerId,
                 updatePlayerOptions);
 
-            if (isSetInitPlayerDataObject == false)
-            {
-                isSetInitPlayerDataObject = true;
-                UpdatePlayerDataInCurrentLobby(CurrentLobby, AuthenticationService.Instance.Profile,
-                    isLobbyHost ? PlayerTypeInGame.Police.ToString() : PlayerTypeInGame.Thief.ToString(), false);
-            }
+           
         }
-
+        
+        if (isSetInitPlayerDataObject == false)
+        {
+            isSetInitPlayerDataObject = true;
+            UpdatePlayerDataInCurrentLobby(CurrentLobby, AuthenticationService.Instance.Profile,
+                isLobbyHost ? PlayerTypeInGame.Police.ToString() : PlayerTypeInGame.Thief.ToString(), false);
+        }
         if (isLobbyHost)
         {
             var updateLobbyOptions = new UpdateLobbyOptions();
@@ -182,6 +183,7 @@ public class LobbyManager : Singleton<LobbyManager>
         }
 
         isLobbyHost = false;
+        isSetInitPlayerDataObject = false;
         CurrentLobby = null;
         NetworkManager.Singleton.Shutdown();
         
