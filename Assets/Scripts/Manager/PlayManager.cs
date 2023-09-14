@@ -7,6 +7,7 @@ using StarterAssets;
 using UnityEngine.SceneManagement;
 using TMPro;
 using Unity.Collections;
+using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
 public class PlayManager : NetworkBehaviour
@@ -15,8 +16,15 @@ public class PlayManager : NetworkBehaviour
     [SerializeField] private CinemachineVirtualCamera _playerFollowCamera;
     [SerializeField] public UICanvasControllerInput uiCanvasControllerInput;
     [SerializeField] public TextMeshProUGUI _playerStatus;
-    [SerializeField] public TextMeshProUGUI _amoutPlayerOnline;
-
+    [SerializeField] public TextMeshProUGUI _amountPlayerOnline;
+        
+    [Header("Popup End Game")]
+    [SerializeField] private GameObject _popupEndGame;
+    [SerializeField] private Transform _listPlayerEndGameTransform;
+    [SerializeField] public bool _isEndGame = false;
+    [SerializeField] public int _pointEndGame;
+    [SerializeField] private TextMeshProUGUI[] listEndGamePlayerNameText;
+    
     [Header("Logic Game")] 
     [SerializeField] private GameObject _playerPrefab;
     [SerializeField] private Transform[] listSpawnBonusPosition; /* List positions could be choose for spawn new Bonus */
@@ -62,6 +70,8 @@ public class PlayManager : NetworkBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        _popupEndGame.SetActive(false);
+        _isEndGame = false;
         foreach (TextMeshProUGUI item in listPlayerNameText)
         {
             item.gameObject.SetActive(false);
@@ -131,7 +141,8 @@ public class PlayManager : NetworkBehaviour
 
     void Update()
     {
-        _amoutPlayerOnline.text = PlayersInRoom.ToString();
+        if (_isEndGame) return;
+        _amountPlayerOnline.text = PlayersInRoom.ToString();
         int i = 0;
         foreach (KeyValuePair<ulong, NetCodeThirdPersonController> player in PlayersList)
         {
@@ -177,6 +188,7 @@ public class PlayManager : NetworkBehaviour
             Destroy(NetworkManager.Singleton.gameObject);
         }
     }
+
 
     #region ServerRPC 
     [ServerRpc(RequireOwnership = false)]
@@ -242,5 +254,44 @@ public class PlayManager : NetworkBehaviour
             sender.point.Value += bonusItem.GetComponent<BonusItem>().bonusData.value;
         }
     }
+    [ServerRpc(RequireOwnership = false)]
+    public void ShowPopupEndGameServerRpc(ServerRpcParams serverRpcParams = default)
+    {
+        Debug.Log("== ShowPopupEndGameServerRpc trigger. Broadcast event end game to all clients");
+        ShowPopupEndGameClientRpc();
+    }
+    #endregion
+
+    #region ClientRpc
+
+    [ClientRpc]
+    public void ShowPopupEndGameClientRpc()
+    {
+        _isEndGame = true;
+        _popupEndGame.SetActive(true);
+        /* Set active false for all item list player */
+        foreach (Transform child in _listPlayerEndGameTransform)
+        {
+            child.gameObject.SetActive(false);
+        }
+        /* Re-fill list player data and score to table list player */
+        int i = 0;
+        foreach (KeyValuePair<ulong, NetCodeThirdPersonController> player in PlayersList)
+        {
+            // Debug.LogWarning($"= Client ID {player.Key} has Name {player.Value.PlayerName}");
+            if (i <= listEndGamePlayerNameText.Length)
+            {
+                listEndGamePlayerNameText[i].text = string.Format("#{0}: {3} - {1} - ID : {2} - P : {4}", i + 1, player.Value.PlayerName, player.Key.ToString(), player.Value.TypeInGame.ToString(), player.Value.Point);
+                listEndGamePlayerNameText[i].gameObject.SetActive(true);
+                if (player.Value.Point >= _pointEndGame)
+                {
+                    listEndGamePlayerNameText[i].fontSize = listEndGamePlayerNameText[i].fontSize + 15;
+                    listEndGamePlayerNameText[i].fontStyle = FontStyles.Bold;
+                }
+                i++;
+            }
+        }
+    }
+
     #endregion
 }

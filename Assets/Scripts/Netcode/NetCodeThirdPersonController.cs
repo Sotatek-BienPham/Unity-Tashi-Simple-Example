@@ -204,6 +204,7 @@ namespace StarterAssets
             base.OnNetworkSpawn();
             typeInGame.OnValueChanged += OnTypeInGameChange;
             isImmortal.OnValueChanged += OnIsImmortalChange;
+            point.OnValueChanged += OnPointChange;
             if (IsOwner)
             {
                 playerName.Value = new FixedString32Bytes(PlayerDataManager.Instance.playerData.name);
@@ -231,6 +232,7 @@ namespace StarterAssets
             base.OnNetworkDespawn();
             typeInGame.OnValueChanged -= OnTypeInGameChange;
             isImmortal.OnValueChanged -= OnIsImmortalChange;
+            point.OnValueChanged -= OnPointChange;
             PlayManager.Instance.PlayersList.Remove(this.OwnerClientId);
         }
         /* Setup for owner player : Camera, Player Input Movement, ... */
@@ -248,6 +250,7 @@ namespace StarterAssets
 
         private void Update()
         {
+            if (PlayManager.Instance._isEndGame) return;
             playerNameText.text = PlayerName;
             if (TypeInGame == PlayerTypeInGame.Police)
             {
@@ -509,6 +512,17 @@ namespace StarterAssets
         {
             if (!IsOwner) return; /* If it's not owner, do nothing */
             Debug.Log($"= OnIsImmortalChange Client Name {PlayerName} ID {NetworkManager.LocalClientId} change isImmortal from {pre.ToString()} to {current.ToString()}");
+        }
+        
+        /* Catch event when this point has changed */
+        public void OnPointChange(int pre, int current)
+        {
+            if (!IsOwner) return;
+            if (current >= PlayManager.Instance._pointEndGame)
+            {
+                Debug.Log($"$This Player {PlayerName} has reach End Game Point. Show Endgame now...");
+                PlayManager.Instance.ShowPopupEndGameServerRpc();
+            }
         }
 
         #endregion
