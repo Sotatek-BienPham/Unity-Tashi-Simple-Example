@@ -547,6 +547,101 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
 - Get back to Play Scene and adjust max bonus can spawn of police, reduce it to smaller than max bonus can spawn of thief for balance game I think so because when Police touched Thief, Thief's point decrease and Police's point increase also. 
 - OK So we're basically done game logic, so host and client can go into a room and chasing each other, take the bonus, get the point and let's see who has the best point when end the game. 
 
+## Popup End Game :
+- In this project, I'll make simple logic end game. That's when any player reach max goal point, the game'll be, show Popup result. 
+- First of all, you'll need create a UI for Popup End Game like this : 
+![img.png](Images/ui_popup_endgame.png)
+
+- In `PlayManager.cs`, we should create some variables : 
+```c#
+    ...
+        [Header("Popup End Game")]
+    [SerializeField] private GameObject _popupEndGame; // GameObject of Popup End Game content.
+    [SerializeField] private Transform _listPlayerEndGameTransform;
+    [SerializeField] public bool _isEndGame = false; // true when game has end.  
+    [SerializeField] public int _pointEndGame; // End game when one of player reach this point.
+    [SerializeField] private TextMeshProUGUI[] listEndGamePlayerNameText;
+    
+    // When Start(), disable popup end game. 
+    void Start()
+    {
+        _popupEndGame.SetActive(false);
+        _isEndGame = false;
+        ...
+```
+
+- In `NetCodeThirdPersonController.cs`, we add some logic : Listen event Point change value and check if point has reach max point, call to ServerRpc to notice that one of player reached max point. 
+- And then, In ServerRpc'll broadcast to all clients know that One of player has reached max point and show popup end game. 
+```c#
+
+      public override void OnNetworkSpawn()
+        {
+            base.OnNetworkSpawn();
+            ...
+            point.OnValueChanged += OnPointChange; // Dont forget remove OnValueChanged in OnNetworkDespawn.
+            ...
+        }
+        /* Catch event when this point has changed */
+        public void OnPointChange(int pre, int current)
+        {
+            if (!IsOwner) return;
+            if (current >= PlayManager.Instance._pointEndGame)
+            {
+                Debug.Log($"$This Player {PlayerName} has reach End Game Point. Show Endgame now...");
+                PlayManager.Instance.ShowPopupEndGameServerRpc();
+            }
+        }
+
+        private void Update(){
+            // stop every actions when isEndGame = true
+            if (PlayManager.Instance._isEndGame) return;
+            ...
+        }
+```
+- Get back to `PlayManager.cs`. I'll create func ServerRpc, check show Popup End Game in here: 
+```c#
+     [ServerRpc(RequireOwnership = false)]
+    public void ShowPopupEndGameServerRpc(ServerRpcParams serverRpcParams = default)
+    {
+        Debug.Log("== ShowPopupEndGameServerRpc Trigged. Broadcast event end game to all clients");
+        ShowPopupEndGameClientRpc();
+    }
+    #endregion
+
+    #region ClientRpc
+
+    [ClientRpc]
+    public void ShowPopupEndGameClientRpc()
+    {
+        _isEndGame = true;
+        _popupEndGame.SetActive(true);
+        /* Set active false for all item list player */
+        foreach (Transform child in _listPlayerEndGameTransform)
+        {
+            child.gameObject.SetActive(false);
+        }
+        /* Fill list player data and score to table list player */
+        int i = 0;
+        foreach (KeyValuePair<ulong, NetCodeThirdPersonController> player in PlayersList)
+        {
+            // Debug.LogWarning($"= Client ID {player.Key} has Name {player.Value.PlayerName}");
+            if (i <= listEndGamePlayerNameText.Length)
+            {
+                listEndGamePlayerNameText[i].text = string.Format("#{0}: {3} - {1} - ID : {2} - P : {4}", i + 1, player.Value.PlayerName, player.Key.ToString(), player.Value.TypeInGame.ToString(), player.Value.Point);
+                listEndGamePlayerNameText[i].gameObject.SetActive(true);
+                if (player.Value.Point >= _pointEndGame)
+                {
+                    listEndGamePlayerNameText[i].fontSize = listEndGamePlayerNameText[i].fontSize + 15;
+                    listEndGamePlayerNameText[i].fontStyle = FontStyles.Bold;
+                }
+                i++;
+            }
+        }
+    }
+
+    #endregion
+```
+
 
 ## Sign in, Login via UGS Authentication : 
 - Go to Project Settings > Services and link to your project in Unity Dashboard. 
