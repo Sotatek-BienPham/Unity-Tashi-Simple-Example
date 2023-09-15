@@ -17,6 +17,7 @@ public class PlayManager : NetworkBehaviour
     [SerializeField] public UICanvasControllerInput uiCanvasControllerInput;
     [SerializeField] public TextMeshProUGUI _playerStatus;
     [SerializeField] public TextMeshProUGUI _amountPlayerOnline;
+    [SerializeField] public TextMeshProUGUI _goalPointText;
         
     [Header("Popup End Game")]
     [SerializeField] private GameObject _popupEndGame;
@@ -70,6 +71,7 @@ public class PlayManager : NetworkBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        _goalPointText.text = $"Goal point to win game : {_pointEndGame}";
         _popupEndGame.SetActive(false);
         _isEndGame = false;
         foreach (TextMeshProUGUI item in listPlayerNameText)
@@ -179,6 +181,14 @@ public class PlayManager : NetworkBehaviour
         // Cleanup();
         PlayerDataManager.Instance.SetStatus(PlayerStatus.Offline);
         LobbyManager.Instance.ExitCurrentLobby();
+        StartCoroutine(IELoadMenuScene());
+        
+    }
+
+    public IEnumerator IELoadMenuScene()
+    {
+        yield return new WaitForSeconds(2f);
+        // NetworkManager.SceneManager.LoadScene(SceneName.Menu.ToString());
         SceneManager.LoadScene(SceneName.Menu.ToString());
     }
     public void Cleanup()

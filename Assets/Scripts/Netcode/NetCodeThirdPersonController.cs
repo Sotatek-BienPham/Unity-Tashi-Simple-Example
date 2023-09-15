@@ -580,8 +580,8 @@ namespace StarterAssets
             StartCoroutine(IESetImmortalFalse(targetPlayer, 3f));
 
             /* Logic Increase Police's point, Decrease Thief's point */
-            targetPlayer.point.Value--;
-            senderPlayer.point.Value++;
+            targetPlayer.point.Value -= 2;
+            senderPlayer.point.Value += 2;
         }
 
         #endregion
@@ -601,7 +601,7 @@ namespace StarterAssets
         {
             /* Receive info from Server and perform explosion in client */
             GameObject explosionVfx = Instantiate(PlayManager.Instance.explosionBoomPrefab);
-            explosionVfx.transform.position = PlayManager.Instance.PlayersList[targetClientId].gameObject.transform.position;
+            explosionVfx.transform.position = PlayManager.Instance.PlayersList[targetClientId].gameObject.transform.position + new Vector3(0f, 0.5f, 0f);
             /* I've set auto destroy this particle system when it's done.  */
 
             /* Check if  */
