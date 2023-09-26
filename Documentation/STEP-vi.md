@@ -212,10 +212,10 @@ public override void OnNetworkSpawn()
     }
 ```
 
-## Add Logic Game Hide and Seek : 
-- In this project, The host will be Police and catch all other clients. The clients will be Thief and start running when spawned.
-- Create tag Police and Thief. 
-- Create variable storage state typeInGame of player , put it in NetCodeThirdPersonController.cs: 
+## Thêm logic cho Game Hide and Seek : 
+- Trong dự án này, chủ phòng sẽ được chọn làm cảnh sát và ghi điểm bằng cách bắt tất cả các kẻ cướp khác. Những người chơi còn lại sẽ là cướp và bắt đầu chạy khi được sinh ra. 
+- Tạo `tag` Poilce và Thief.  
+- Tạo biến để lưu loại của người chơi, để biến này trong file `NetCodeThirdPersonController.cs` :  
 ```c# 
 private NetworkVariable<PlayerTypeInGame> typeInGame = new NetworkVariable<PlayerTypeInGame>(PlayerTypeInGame.Thief, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
         public PlayerTypeInGame TypeInGame
@@ -223,7 +223,7 @@ private NetworkVariable<PlayerTypeInGame> typeInGame = new NetworkVariable<Playe
             get { return typeInGame.Value; }
         }
 ```
-- OnNetworkSpawn(), Add listten OnTypeInGame value changed, check if IsOwner > if IsHost will setup this Player is Police : change typeInGame.Value and tag such as code below : 
+- Trong `OnNetworkSpawn()`, thêm hàm lắng nghe khi `OnTypeInGame` có sự thay đổi giá trị, kiểm tra nếu là `IsOwner` và là `IsHost` thì Người chơi này chính là chủ phòng và sẽ được chọn làm Cảnh sát : Thay đổi `typeInGame.value = Police` và gắn tag Police cho Player này bằng đoạn code sau :  
 ```c# 
         public override void OnNetworkSpawn()
         {
@@ -255,7 +255,7 @@ private NetworkVariable<PlayerTypeInGame> typeInGame = new NetworkVariable<Playe
             PlayManager.Instance.PlayersList.Remove(this.OwnerClientId);
         }
 ```
-- Make something diff between Police and Thief, basiclly change text color for simple example, so when set playerNameText, I change the color also in Update(): 
+- Tạo 1 chút sự khác biệt giữa Cảnh sát và Cướp để nhận biết : Cơ bản ở đây tôi thay đổi màu của tên người chơi, Cảnh sát thì màu xanh, Cướp thì màu đỏ. Thực hiện thay đổi trong hàm `Update()`: 
 ```c# 
             if (TypeInGame == PlayerTypeInGame.Police)
             {
@@ -267,14 +267,14 @@ private NetworkVariable<PlayerTypeInGame> typeInGame = new NetworkVariable<Playe
             }
 ```
 
-============================ LOGIC POLICE TOUCH THIEF ================= 
-## Logic Police touch Thief : Show effect, count points, make thief immortar some seconds when get touched by Police : 
-### Add Event Manager to manage all events in game : 
-- Add script EventManager.cs in first scene and tick isPersistance for DontDestroyOnLoad. Add EventName TouchThief and we'll use it later.
-Note that you should go Project Setting > Script Excecute Order and set timing for EventManager running first/before. 
-- To check Police have touched thief or not, I've set the tag for particular player with their role. 
-- In Third Person Controller, we have to check collide in BasicRigidBodyPush.cs that attach in Player Prefab. 
-- In BasicRigidBodyPush.cs, create or adjust OnControllerColliderHit if it's exist like below : 
+============================ LOGIC POLICE CHẠM VÀO THIEF ================= 
+## Cơ chế khi Cảnh sát chạm vào Cướp : Hiện hiệu ứng, tính điểm, cho Cướp bất tử trong vài giây kể từ sau khi bị Cảnh sát chạm vào :"
+### Thêm `EventManager` để quản lý các events trong game :  
+- Thêm script `EventManager.cs` vào scene đầu tiên và chọn `isPersistance` để file đó sẽ tồn tại. Thêm sự kiện `EventName` có tên là `TouchThief`, tôi sẽ sử dụng nó sau này.
+- Lưu ý rằng bạn nên vào Project Setting > Script Excecute Order và thiết lập thời gian cho `EventManager` để nó được chạy đầu tiên
+- Để kiểm tra xem Cảnh sát đã chạm vào Cướp hay chưa, tôi đã tạo `tag` cho từng Player theo từng role (Police/Thief) của họ trước đó.
+- Ta sẽ kiểm tra va chạm trong script `BasicRigidBodyPush.cs` ở trong `Player Prefab`. 
+- Trong `BasicRigidBodyPush.cs`, viết hàm `OnControllerColliderHit` giống như bên dưới : 
 ```c# 
     private void OnControllerColliderHit(ControllerColliderHit hit){
         ...
@@ -299,8 +299,8 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
         }
     }
 ```
-- Ok so here, we sent event to this player know that they're touching thief and idetity of that thief via NetCodeThirdPersonController target variable. 
-- In NetCodeThirdPersonController.cs, we add some codes : 
+- Đến đây, chúng ta sẽ bắn sự kiến với người chơi này để họ biết họ đang chạm vào Cướp và 1 số thông tin định danh tên cướp đó thông qua `NetCodeThirdPersonController.cs` 
+- Trong NetCodeThirdPersonController.cs, ta thêm đoạn code sau : 
 ```c# 
 
         #region  Game Logic 
@@ -313,9 +313,9 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
             OnPoliceCatchedThiefServerRpc(target.OwnerClientId);
         }
 ```
-- OK greate. Now you can start running 2 Instance game as Police and thief, and whenever Police touch to Thief, in log you'll see something like this : "= Event OnTouchThief : I'm Luuna - ID 1 and I catched a thief has name is Luuna - ID: 1" -> Notify the information that's what I need to next step.
-### Show prefab explosion and notify ServerRpc so that all clients are aware that someone has been caught: 
-- OnTouchThief we've created above, I'll call a ServerRpc to notyfy excecute explostion for all clients : 
+- ĐƯợc rồi. Giờ chúng ta sẽ build ra và khởi chạy 2 game, 2 người chơi là Cảnh sát và Cướp. Và bất cứ khi nào Cảnh sát chạm vào Cướp thì ở trong Log bạn sẽ thấy hiện dòng thông báo. 
+### Hiện hiệu ứng vụ nổ và thông báo tới Server rằng tất cả các người chơi biết được ai đó đã bị chạm :  
+- Trong hàm `OnTouchThief()` ta tạo ở bên trên, ta sẽ thực hiện gọi ServerRPC để thông báo cho server biết, và từ server sẽ thông báo tới tất cả clients : 
 ```c# 
     public void OnTouchThief(Dictionary<string, object> msg){
         ...
@@ -323,7 +323,7 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
             OnPoliceCatchedThiefServerRpc(OwnerClientId, target.OwnerClientId);
     }
 ```
-- Create func OnPoliceCatchedThiefServerRpc like this: 
+- Tạo hàm  `OnPoliceCatchedThiefServerRpc()` như sau: 
 ```c# 
     [ServerRpc]
         public void OnPoliceCatchedThiefServerRpc(ulong fromClientId, ulong targetClientId, ServerRpcParams serverRpcParams = default){
@@ -338,8 +338,8 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
             ShowExplosionEffectInClientRpc(targetClientId);
         }
 ```
-- In this video I'll using option 2 because the explosion it's just to show vfx and not affect to logic/points or something important. 
-- So continously create ShowExplosionEffectInClientRpc to receive notify from ServerRpc : 
+- Trong đoạn code trên tôi có chia làm 2 cách, tôi sẽ sử dụng cách 2 bởi vì vụ nổ chỉ mang tính hiển thị và không ảnh hướng tới tính logic của game.  
+- Tiếp theo tạo hàm `ShowExplosionEffectInClientRpc()` để nhận thông báo hiển thị hiệu ứng từ server. Về prefab Vụ nổ thì bạn tự kiếm nhé hoặc lấy trong project này :  
 ```c# 
         [ClientRpc]
         public void ShowExplosionEffectInClientRpc(ulong targetClientId){
@@ -349,16 +349,16 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
             /* I've set auto destroy this particle system when it's done.  */
         }
 ```
-- It's maybe ok rn. Let's run 2 instance game and check collide between police and thief.
+- Mọi thứ có vẻ ổn ôn rồi. Có thể build và khởi chạy 2 màn hình game để kiểm tra va chạm, vụ nổ giữa Cảnh sát và Cướp
 
-### Make game logic IsImmortal for Thief in 3 seconds when have been caught by Police : 
-- Create variable isImmortal : 
+### Logic cho Cướp bất tử trong vòng 3 giây sau khi bị Cảnh sát bắt :  
+- Tạo 1 biến `isImmortal` trong `NetCodeThirdPersonController.cs`: 
 ```c# 
     [Tooltip("isImmortal : true -> police cannot catch this thief when touch. This variable just change on ServerRpc. Don't trust client")]
         private NetworkVariable<bool> isImmortal = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
         public bool IsImmortal { get { return isImmortal.Value; } }
 ```
-- Listen event when isImmortal value changed in OnNetworkSpawn and OnNetworkDespawn : 
+- Lắng nghe sự kiện khi biến `isImmortal` thay đổi giá trị trong hàm `OnNetworkSpawn()` và `OnNetworkDespawn()` : 
 ```c# 
         base.OnNetworkSpawn();
         isImmortal.OnValueChanged += OnIsImmortalChange;
@@ -373,7 +373,8 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
             Debug.Log($"= OnIsImmortalChange Client Name {PlayerName} ID {NetworkManager.LocalClientId} change isImmortal from {pre.ToString()} to {current.ToString()}");
         }
 ```
-- Now it's time to detech when we should change isImmortal value. This will be change in server when target thief got caught. Get back to func OnPoliceCatchedThiefServerRpc(), add the line make target thief immortal for some seconds : 
+- Bây giờ, ta sẽ lựa chọn xem khi nào thì sẽ thay đổi giá trị của `isImmortal`. Nó sẽ thay đổi trên server khi mà kẻ cướp đó bị Cảnh sát chạm vào. 
+- Quay trở lại hàm `OnPoliceCatchedThiefServerRpc()`, và thêm đoạn code sau để Cướp có thể bất tử : 
 ```c# 
     public void OnPoliceCatchedThiefServerRpc(ulong targetClientId, ServerRpcParams serverRpcParams = default){
         ...
@@ -389,12 +390,12 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
         targetPlayer.isImmortal.Value = false;
     }
 ``` 
-- Almost done.  Run and check.
+- Chạy thử game thôi. 
 
 
-### Logic count points : Increase/Decrease Point when Police touched Thief : 
-- According my point of view, I think have 2 ways : change point and update in Update() or change point and listen OnValueChange to update UI. I use first way. 
-- Declare 'Point' variable to store the point of each player  : 
+### Logic tính điểm : Tăng/giảm điểm khi Cảnh sát chạm vào cướp:  
+- Theo ý tưởng của tôi, thì có 2 hướng: Thay đổi điểm và cập nhật trong `Update()` hoặc thay đổi điểm và lắng nghe sự kiến `OnValueChange` của điểm rồi hiển thị lên UI. Ở đây tôi sử dụng cách 1. 
+- Khai báo biến `Point` để lưu trữ điểm của mỗi Player 
 ```c# 
        /* Point to count the game logic : Police touch thief -> police's point ++ , thief's point -- */
         private NetworkVariable<int> point = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
@@ -402,7 +403,7 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
             get { return point.Value;}
         }
 ```
-- When Police touched Thief, make some login in ServerRpc, and in here, we calc the point (Increase Police's Point and Decrease Thief's point) like below : 
+- Khi Cảnh sát chạm vào Cướp, thực hiện 1 số logic trên ServerRpc, và ở đây, tôi sẽ tính toán điểm như sau :  
 ```c# 
         [ServerRpc(RequireOwnership = false)]
         public void OnPoliceCatchedThiefServerRpc(ulong targetClientId, ServerRpcParams serverRpcParams = default){
@@ -413,19 +414,19 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
 
         }
 ```
-- So now go back to PlaySceneManager and add the text point into table list Player. This table'll reload every update by change this line become : 
+- Tiếp đến quay lại với `PlaySceneManager.cs` và thêm dòng điểm vào trong bảng danh sách thông tin các người chơi trong phòng.   
 ```c# 
     ...
     listPlayerNameText[i].text = string.Format("#{0}: {3} - {1} - ID : {2} - P : {4}", i+1, player.Value.PlayerName, player.Key.ToString(), player.Value.TypeInGame.ToString(), player.Value.Point);
 ```
 
-### Logic Spawn Bonus in-game : Police Bonus and Thief Bonus Point : 
-- Police bonus has green color. When Police touch Police Bonus, their speed 'll increase. 
-- Thief Bonus Point has red color. When Thief touch Thief Bonus, their point'll increase. 
+### Logic sinh ra các Vật phẩm trong game : Vật phẩm cho Cảnh sát và cho Cướp :  
+- Vật phẩm Cảnh sát sẽ có màu xanh. Khi cảnh sát chạm vào, điểm của họ sẽ được tăng.  
+- Vật phẩm Cướp sẽ có màu đỏ. Khi Cướp chạm vào, điểm của họ sẽ được tăng.  
 
-- Create GameObject such as cube, and custom shape to what you like. For me, I custom that cube into item : change color,  animation turning around itself, add Tag Police Bonus/Thief Bonus, set IsTrigger in Box Collider, change scale, change rotation, add Network Object component. 
-- Drag it into prefabs in Resources folder. add to Network Prefabs List. 
-- Create BonusItem.cs to identity Bonus Prefab, it's include BonusData attribute. Add this script into Bonus prefab and define suiable params.
+- Quay trở lại `PlayScene`, tạo Vật phẩm : đầu tiên tạo 1 `Cube`, và tuỳ chỉnh hình dạng, màu sắc cho chúng. Ở đây tôi chỉnh màu, animation để nó quay quay vòng tròn, và gắn `Tag` `Police Bonus` hoặc `Thief Bonus` cho chúng. Tick chọn `IsTrigger` trong `Box Collider`, thay đổi tỷ lệ cho phù hợp với màn chơi, và thêm Component `NetworkObjectComponent` và trong cube này. 
+- Kéo nó thành `prefab` ở trong folder `Resources`, và thêm nó vào trong `Network Prefabs List` ở trong NetworkManager. 
+- Tạo 1 file script tên `BonusItem.cs` để tạo các thuộc tính cho `Bonus Prefab`. Nó bao gồm các thuộc tính của Vật phẩm tăng cường đó. Thêm script này vào trong `Bonus Prefab`.
 ```c# 
     [Serializable]
     public class BonusData { 
@@ -435,7 +436,7 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
         public int value = 1;
     }
 ```
-- Add logic check Player collide with Bonus in NetcodeThirdPersonController.cs, Police just can collide with Police's Bonus, Thief collide with Thief's Bonus : 
+- Thêm logic để kiểm tra Người chơi va chạm với Vật phẩm tăng cường trong `NetCodeThirdPersonController.cs`, Cảnh sát chỉ có thể va chạm với Vật phẩm của Cảnh sát, Cướp va chạm với Vật phẩm của Cướp. 
 ```c#
         void OnTriggerEnter(Collider other)
         {
@@ -459,8 +460,8 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
         }
 ```
 
-- Create list Spawn Bonus Point in Play Scene : I'll randomly spawn Bonus prefabs in that list position.
-- Create ArrayList to store list spawn point that I've created before. 
+- Tạo danh sách chứa các Vật phẩm đã được sinh ra trong Scene : Tôi sẽ thực hiện sinh ra các Vật phẩm tại các vị trí ngẫu nhiên
+- Khởi tạo `ArrayList` để lưu danh sách các Vật phẩm và tôi đã sinh ra trước đó :  
 ```c# 
     [SerializeField] private Transform[] listSpawnBonusPosition; /* List positions could be choose for spawn new Bonus */
     [SerializeField] private GameObject policeBonusPrefab; 
@@ -470,7 +471,8 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
     private List<ulong> listPoliceBonusIdSpawned = new List<ulong>(); /* Store List Police Bonus are spawned in game */
     private List<ulong> listThiefBonusIdSpawned = new List<ulong>(); /* Store List Thief Bonus are spawned in game */
 ```
-- When Start() PlaySceneManager, check if Server so SpawnBonus in map. After spawned object, don't forget save networkObjectId into list it's helpful for client identity gameobject. Then create func call when Police or Thief touched on their bonus, so I'll increase point, remove this bonusId from listBonusId, despawn this bonus and Call func to re-calculator spawn bonus in map: 
+- Trong hàm `Start()` trong `PlaySceneManager.cs`, kiểm tra nếu là Server thì thực hiện sinh ra Vật phẩm ở trong map. Sau khi sinh ra, đừng quên lưu lại `networkObjectId` vào danh sách, nó sẽ giúp định danh được các đối tượng.
+- Tiếp đến tạo hàm xử lý khi Cảnh sát/Cướp chạm được vào vật phẩm của họ, thực hiện tăng điểm, xoá vật phẩm đó khỏi danh sách, huỷ vật phẩm đó và gọi hàm để tính toán sinh ra vật phẩm mới trong map :
 ```c# 
     void Start(){
     ...
@@ -532,7 +534,7 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
     #endregion
 ```
 
-- Don't forget add RequireOwnership = false, so when client touch bonus can call to ServerRpc. 
+- Đừng quên để `RequireOwnership = false`, khi đó thì Các người chơi khi chạm vào bonus đều có thể gọi tới Server để thực hiện logic.  
 
 ### Change a bit logic when touch Bonus : Increase their Point : 
 - For more simplier game play, so I've changed logic game when Police/Thief touched their Bonus Item, so I'll increase their Point : Add these lines to func touched Bonus in server : 

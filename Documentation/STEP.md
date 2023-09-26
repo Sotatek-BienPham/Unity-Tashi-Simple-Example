@@ -269,7 +269,7 @@ private NetworkVariable<PlayerTypeInGame> typeInGame = new NetworkVariable<Playe
 ```
 
 ============================ LOGIC POLICE TOUCH THIEF ================= 
-## Logic Police touch Thief : Show effect, count points, make thief immortar some seconds when get touched by Police : 
+## Logic Police touch Thief : Show effect, count points, make thief immortal some seconds when get touched by Police : 
 ### Add Event Manager to manage all events in game : 
 - Add script EventManager.cs in first scene and tick isPersistance for DontDestroyOnLoad. Add EventName TouchThief and we'll use it later.
 Note that you should go Project Setting > Script Excecute Order and set timing for EventManager running first/before. 
@@ -421,7 +421,7 @@ Note that you should go Project Setting > Script Excecute Order and set timing f
 ```
 
 ### Logic Spawn Bonus in-game : Police Bonus and Thief Bonus Point : 
-- Police bonus has green color. When Police touch Police Bonus, their speed 'll increase. 
+- Police bonus has green color. When Police touch Police Bonus, their point 'll increase. 
 - Thief Bonus Point has red color. When Thief touch Thief Bonus, their point'll increase. 
 
 - Create GameObject such as cube, and custom shape to what you like. For me, I custom that cube into item : change color,  animation turning around itself, add Tag Police Bonus/Thief Bonus, set IsTrigger in Box Collider, change scale, change rotation, add Network Object component. 
