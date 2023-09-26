@@ -112,8 +112,8 @@ private void OnClientConnected(ulong clientId)
     ```c# 
     _amoutPlayerOnline.text = PlayersInRoom.ToString();
     ```
-## Set Username Sync NetCode : 
-- In PlayerController (or st containt Player Logic, inherit NetworkBehaviour), create a playerName variable : 
+## Đồng bộ tên của User qua NetCode : 
+- Trong PlayerController (hoặc là file Player Logic của bạn, kế thừa NetworkBehaviour), tạo 1 biến `playerName` : 
 ```c# 
         public NetworkVariable<FixedString32Bytes> playerName = new NetworkVariable<FixedString32Bytes>("No-name", NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
         public string PlayerName {
@@ -121,9 +121,9 @@ private void OnClientConnected(ulong clientId)
         }
         public TextMeshPro playerNameText;
 ```
-- You can create a struct called NetworkString repace for FixedString32Bytes and you can using NetworkVariable such as normaly string type. [Link](https://youtu.be/rFCFMkzFaog?t=1010)
+- Bạn cũng có thể tạo 1 `struct` với tên là NetworkString và sử dụng nó thay cho `FixedString32Bytes`, sau đó là sử dụng `NetworkVarialbe` như là 1 biến string thông thường. [Link](https://youtu.be/rFCFMkzFaog?t=1010)
 
-* C1 : - in override func OnNetworkSpawn : 
+* Trong đoạn kế thừa func `OnNetworkSpawn()` 
 ```c# 
     /* Listen event when playerName changed value on server */
     playerName.OnValueChanged += OnPlayerNameChanged;
@@ -132,7 +132,7 @@ private void OnClientConnected(ulong clientId)
         SetPlayerNameServerRpc(PlayerDataManager.Instance.playerData.name);
     }
 ```
-- Create ServerRpc and ClientRpc : 
+- Tạo hàm SetPlayer ở phía ServerRpc và ClientRpc : 
 ```c# 
         [ServerRpc(RequireOwnership = false)]
         public void SetPlayerNameServerRpc(string name)
@@ -142,7 +142,7 @@ private void OnClientConnected(ulong clientId)
             playerName.Value = new FixedString32Bytes(name);
         }
 ```
-- At func listen event PlayerName Change : OnPlayerNameChanged : do something such as set text in UI
+- Trong hàm lắng nghe thuộc tính `PlayerName` thay đổi : `OnPlayerNameChanged` : Ta thực hiện cập nhật lại tên player trên text ở UI. 
 ```c# 
       private void OnPlayerNameChanged(FixedString32Bytes previous, FixedString32Bytes current)
         {
@@ -150,27 +150,26 @@ private void OnClientConnected(ulong clientId)
             playerNameText.text = current.ToString();
         }
 ```
-- Get back to Player prefab, Create UI Text show player name, and referencens it to variable `playerNameText` that declare at first step. 
-- That's almost done : Start Host with name, Client join also have their custom name. 
-* But still got a Bug. that's in last client view, the names of the previous players have not been updated. I'll fix it in nexts step. 
-So I found a simple way to set player name for each player : 
-- In OnNetworkSpawn() add this line, it'll change name for owner client and change in all other clients : 
+- Quay lại với `Player Prefab`, tạo UI Text để hiển thị tên người chơi, sau đó kéo nó liên kết với biến `playerNameText` mà đã khai báo lúc trước.  
+- Cơ bản đã thiết lập được tên người chơi : `StartHost` cùng với tên người chơi, Các người chơi khác vào game sẽ thấy tên của bạn.  
+* Đến đây thấy có 1 vấn đề. Trong khung hình của người chơi vào sau cùng, tên của người chơi trước đó chưa được cập nhật. Tôi sẽ sửa nó trong bước tiếp theo. 
+- Trong hàm `OnNetworkSpawn()`, thêm dòng bên dưới, nó sẽ thay đổi tên của khách đó và cập nhật thay đổi trên tất cả người chơi khác.  
 ```c# 
             if (IsOwner)
             {
                 playerName.Value = new FixedString32Bytes(PlayerDataManager.Instance.playerData.name);
             }
 ```
-- in Update() func, set playerNameText : 
-        playerNameText.text = PlayerName;
+- Trong hàm `Update()`, ta thiết lập tên hiển thị trên UI : 
+        `playerNameText.text = PlayerName;`
 
-## Manager List Player Network in Play Scene Manager :
-- In PlayManager.cs, create variable store players network spawned : 
+## Quản lý danh sách các Player trong Play Scene :
+- Trong `PlayManager.cs`, tạo biến lưu trữ các player đã được sinh ra : 
 ```c# 
     Dictionary<ulong, NetCodeThirdPersonController> playersList = new Dictionary<ulong, NetCodeThirdPersonController>();
     public Dictionary<ulong, NetCodeThirdPersonController> PlayersList { get => playersList; }
 ```
-- And so I'll update value playersList in player script (NetCodeThirdPersonController for me) : 
+- Và sau đó tôi sẽ cập nhật lại giá trị của `playersList` ở trong player script (Trong TH của tôi thì script đó tên là `NetCodeThirdPersonController.cs`) :  
 ```c# 
 public override void OnNetworkSpawn()
         {
@@ -191,9 +190,9 @@ public override void OnNetworkSpawn()
             PlayManager.Instance.PlayersList.Remove(this.OwnerClientId);
         }
 ```
-- And so on, in PlaySceneManager listPlayer will update automatically when has change. You could use this player list to show List Player in game (about name, hp, score or st);
-- In this project, I firstly create a table to show List Player Name are in room. Back to UI Editor and create UI in play scene.
-- And finnally, referencs list table, text row to fill list player in room info table. Example I writing in Update() : 
+- Tiếp theo, trong `PlaySceneManager` thì `listPlayer` sẽ được tự động cập nhật thay đổi. Bạn có thể sử dụng danh sách player đó để hiển thị trên UI danh sách những người chơi trong game (VD: hiển thị tên, máu, điểm,... )
+- Trong dự án này, tôi sẽ tạo 1 bảng trên UI để hiển thị danh sách tên các player đang trong room. Thực hiện tạo trên UI Editor trên `PlayScene`  
+- Và cuối cùng, kéo liên kết từ UI vừa tạo vào, và thực hiện điền danh sách người chơi trong room vào bảng người chơi đó. Ví dụ ở đây tôi viết cập nhật danh sách thông tin người chơi trong room trong hàm `Update()`:  
 ```c# 
     void Update()
     {
