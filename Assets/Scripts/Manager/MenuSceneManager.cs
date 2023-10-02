@@ -250,7 +250,7 @@ public class MenuSceneManager : NetworkBehaviour
 
                 StopCoroutine(IEGetListLobbies());
                 StartCoroutine(IEGetListLobbies());
-                
+
                 StopCoroutine(IECheckUpdateListPLayerInRoom());
                 StartCoroutine(IECheckUpdateListPLayerInRoom());
             };
@@ -356,6 +356,28 @@ public class MenuSceneManager : NetworkBehaviour
         {
             IsPrivate = false,
         };
+        // Ensure you sign-in before calling Authentication Instance.
+// See IAuthenticationService interface.
+        lobbyOptions.Player = new Player(
+            id: AuthenticationService.Instance.PlayerId,
+            data: new Dictionary<string, PlayerDataObject>()
+            {
+                {
+                    "Name", new PlayerDataObject(
+                        visibility: PlayerDataObject.VisibilityOptions.Public, // Visible only to members of the lobby.
+                        value: AuthenticationService.Instance.Profile)
+                },
+                {
+                    "Role", new PlayerDataObject(
+                        visibility: PlayerDataObject.VisibilityOptions.Public, // Visible only to members of the lobby.
+                        value: LobbyManager.Instance.isLobbyHost ? PlayerTypeInGame.Police.ToString() : PlayerTypeInGame.Thief.ToString())
+                },
+                {
+                    "IsReady", new PlayerDataObject(
+                        visibility: PlayerDataObject.VisibilityOptions.Public, // Visible only to members of the lobby.
+                        value: "False")
+                },
+            });
         string lobbyName = this.LobbyName();
 
         LobbyManager.Instance.CurrentLobby =

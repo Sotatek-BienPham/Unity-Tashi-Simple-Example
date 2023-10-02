@@ -53,38 +53,48 @@ public class LobbyManager : Singleton<LobbyManager>
     /* Tashi setup/update PlayerDataObject */
     public async void LobbyUpdate()
     {
-        var outgoingSessionDetails = NetworkTransport.OutgoingSessionDetails;
-
-        var updatePlayerOptions = new UpdatePlayerOptions();
-        if (outgoingSessionDetails.AddTo(updatePlayerOptions))
+        if (isUsingTashi)
         {
-            // Debug.Log("= PlayerData outgoingSessionDetails AddTo TRUE so can UpdatePLayerAsync");
-            CurrentLobby = await LobbyService.Instance.UpdatePlayerAsync(CurrentLobby.Id,
-                AuthenticationService.Instance.PlayerId,
-                updatePlayerOptions);
+            var outgoingSessionDetails = NetworkTransport.OutgoingSessionDetails;
 
-           
+            var updatePlayerOptions = new UpdatePlayerOptions();
+            if (outgoingSessionDetails.AddTo(updatePlayerOptions))
+            {
+                // Debug.Log("= PlayerData outgoingSessionDetails AddTo TRUE so can UpdatePLayerAsync");
+                CurrentLobby = await LobbyService.Instance.UpdatePlayerAsync(CurrentLobby.Id,
+                    AuthenticationService.Instance.PlayerId,
+                    updatePlayerOptions);
+
+
+            }
+
+            if (isLobbyHost)
+            {
+                var updateLobbyOptions = new UpdateLobbyOptions();
+                if (outgoingSessionDetails.AddTo(updateLobbyOptions))
+                {
+                    CurrentLobby = await LobbyService.Instance.UpdateLobbyAsync(CurrentLobby.Id, updateLobbyOptions);
+                }
+            }
         }
-        
+        else
+        {
+            var updateLobbyOptions = new UpdateLobbyOptions();
+            CurrentLobby = await LobbyService.Instance.UpdateLobbyAsync(CurrentLobby.Id, updateLobbyOptions);
+        }
+
         if (isSetInitPlayerDataObject == false)
         {
             isSetInitPlayerDataObject = true;
-            UpdatePlayerDataInCurrentLobby(CurrentLobby, AuthenticationService.Instance.Profile,
-                isLobbyHost ? PlayerTypeInGame.Police.ToString() : PlayerTypeInGame.Thief.ToString(), false);
-        }
-        if (isLobbyHost)
-        {
-            var updateLobbyOptions = new UpdateLobbyOptions();
-            if (outgoingSessionDetails.AddTo(updateLobbyOptions))
-            {
-                CurrentLobby = await LobbyService.Instance.UpdateLobbyAsync(CurrentLobby.Id, updateLobbyOptions);
-            }
+            // UpdatePlayerDataInCurrentLobby(CurrentLobby, AuthenticationService.Instance.Profile,
+                // isLobbyHost ? PlayerTypeInGame.Police.ToString() : PlayerTypeInGame.Thief.ToString(), false);
         }
     }
     
     /* Tashi Update/get lobby session details */
     public async void ReceiveIncomingDetail()
     {
+        if (!isUsingTashi) return;
         try
         {
             if (NetworkTransport.SessionHasStarted) return;
