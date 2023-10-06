@@ -1,5 +1,3 @@
-
-
 using System;
 using System.Collections.Generic;
 using Tashi.NetworkTransport;
@@ -12,19 +10,28 @@ using UnityEngine;
 public class LobbyManager : Singleton<LobbyManager>
 {
     [SerializeField] private bool isUsingTashi;
-    private TashiNetworkTransport NetworkTransport => NetworkManager.Singleton.NetworkConfig.NetworkTransport as TashiNetworkTransport;
+
+    private TashiNetworkTransport NetworkTransport =>
+        NetworkManager.Singleton.NetworkConfig.NetworkTransport as TashiNetworkTransport;
+
     private Lobby _lobby;
+
     public Lobby CurrentLobby
     {
-        get {return _lobby; }
-        set { _lobby = value;
+        get { return _lobby; }
+        set
+        {
+            _lobby = value;
             SerializeFieldLobby = new LobbyInstance(_lobby);
         }
     }
+
     public LobbyInstance SerializeFieldLobby;
     public bool isLobbyHost = false;
     public float nextHeartbeat; /* Time send heart beat to keep connection to lobby alive */
+
     public float nextLobbyRefresh; /* Time get update lobby info */
+
     /* If Tashi has already been set as a PlayerDataObject, we can set our own PlayerDataPbject in the Lobby. */
     public bool isSetInitPlayerDataObject = false;
 
@@ -32,6 +39,7 @@ public class LobbyManager : Singleton<LobbyManager>
     {
         CheckLobbyUpdate();
     }
+
     public async void CheckLobbyUpdate()
     {
         if (CurrentLobby is null) return;
@@ -49,7 +57,7 @@ public class LobbyManager : Singleton<LobbyManager>
             this.ReceiveIncomingDetail();
         }
     }
-    
+
     /* Tashi setup/update PlayerDataObject */
     public async void LobbyUpdate()
     {
@@ -62,16 +70,15 @@ public class LobbyManager : Singleton<LobbyManager>
             CurrentLobby = await LobbyService.Instance.UpdatePlayerAsync(CurrentLobby.Id,
                 AuthenticationService.Instance.PlayerId,
                 updatePlayerOptions);
-
-           
         }
-        
+
         if (isSetInitPlayerDataObject == false)
         {
             isSetInitPlayerDataObject = true;
             UpdatePlayerDataInCurrentLobby(CurrentLobby, AuthenticationService.Instance.Profile,
                 isLobbyHost ? PlayerTypeInGame.Police.ToString() : PlayerTypeInGame.Thief.ToString(), false);
         }
+
         if (isLobbyHost)
         {
             var updateLobbyOptions = new UpdateLobbyOptions();
@@ -81,26 +88,31 @@ public class LobbyManager : Singleton<LobbyManager>
             }
         }
     }
-    
+
     /* Tashi Update/get lobby session details */
     public async void ReceiveIncomingDetail()
     {
         try
         {
-            if (NetworkTransport.SessionHasStarted) return;
-            CurrentLobby = await LobbyService.Instance.GetLobbyAsync(CurrentLobby.Id);
-            var incomingSessionDetails = IncomingSessionDetails.FromUnityLobby(CurrentLobby);
-
-            // This should be replaced with whatever logic you use to determine when a lobby is locked in.
-            if (incomingSessionDetails.AddressBook.Count >= 2)
+            if (NetworkTransport.SessionState == SessionState.NotStarted)
             {
-                NetworkTransport.UpdateSessionDetails(incomingSessionDetails);
+                CurrentLobby = await LobbyService.Instance.GetLobbyAsync(CurrentLobby.Id);
+                var incomingSessionDetails = IncomingSessionDetails.FromUnityLobby(CurrentLobby);
+
+                // This should be replaced with whatever logic you use to determine when a lobby is locked in.
+                if (incomingSessionDetails.AddressBook.Count >= 2)
+                {
+                    NetworkTransport.StartSession(incomingSessionDetails,
+                        () => { Debug.Log("StartSession succeeded"); },
+                        () => { Debug.Log("StartSession failed"); });
+                }
             }
         }
         catch (Exception)
         {
         }
     }
+
     /* To update some Player Info through lobby such as name, isReady state, role */
     public async void UpdatePlayerDataInCurrentLobby(Lobby lobby, string name, string role, bool isReady)
     {
@@ -142,6 +154,7 @@ public class LobbyManager : Singleton<LobbyManager>
             Debug.Log(e);
         }
     }
+
     public async void UpdatePlayerDataIsReadyInLobby(bool isReady)
     {
         try
@@ -169,6 +182,7 @@ public class LobbyManager : Singleton<LobbyManager>
             Debug.Log(e);
         }
     }
+
     public async void ExitCurrentLobby()
     {
         if (CurrentLobby == null) return;
@@ -186,10 +200,11 @@ public class LobbyManager : Singleton<LobbyManager>
         isSetInitPlayerDataObject = false;
         CurrentLobby = null;
         NetworkManager.Singleton.Shutdown();
-        
-        if(MenuSceneManager.Instance is not null)
+
+        if (MenuSceneManager.Instance is not null)
             MenuSceneManager.Instance.UpdateStatusText();
     }
+
     public void OnApplicationQuit()
     {
         ExitCurrentLobby();

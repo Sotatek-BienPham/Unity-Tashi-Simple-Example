@@ -349,7 +349,7 @@
       "url": "https://packages.unity.com"
     },
     "dev.tashi.network.transport": {
-      "version": "file:/Users/bienpham/Downloads/TashiNetworkTransport-UnityPlugin-0.0.12b16282.tgz",
+      "version": "file:/Users/bienpham/Downloads/TashiNetworkTransport-UnityPlugin-0.4.0.tgz",
       "depth": 0,
       "source": "local-tarball",
       "dependencies": {
