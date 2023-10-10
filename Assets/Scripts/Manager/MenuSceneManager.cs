@@ -26,11 +26,9 @@ public class MenuSceneManager : NetworkBehaviour
     [SerializeField] private TextMeshProUGUI statusText;
     [SerializeField] private Button signInButton;
 
-    public TashiNetworkTransport NetworkTransport =>
-        NetworkManager.Singleton.NetworkConfig.NetworkTransport as TashiNetworkTransport;
-
-    [Header("Lobby Menu")] [SerializeField]
-    private TMP_InputField _numberPlayerInRoomTextField;
+    [Header("Lobby Menu")] 
+    public bool isStartingClient = false;
+    [SerializeField] private TMP_InputField _numberPlayerInRoomTextField;
 
     [SerializeField] private TMP_InputField _roomCodeToJoinTextField;
     [SerializeField] private TMP_InputField _roomCodeLobbyTextField; /* room code of lobby you are in */
@@ -334,10 +332,12 @@ public class MenuSceneManager : NetworkBehaviour
         _roomCodeLobbyTextField.text = LobbyManager.Instance.CurrentLobby.LobbyCode;
         UpdateStatusText();
         LobbyManager.Instance.isSetInitPlayerDataObject = false;
+        isStartingClient = false; 
     }
 
     public async void CreateLobby()
     {
+        isStartingClient = false;
         int maxPlayerInRoom = 8;
         if (int.TryParse(_numberPlayerInRoomTextField.text, out int rs))
         {
@@ -527,6 +527,9 @@ public class MenuSceneManager : NetworkBehaviour
 
     public void StartClient()
     {
+        if (isStartingClient) return;
+        isStartingClient = true;
+        Debug.Log("MenuScene StartClient ! ");
         PlayerDataManager.Instance.SetName(AuthenticationService.Instance.Profile);
         AsyncOperation progress = SceneManager.LoadSceneAsync(SceneName.Play.ToString(), LoadSceneMode.Single);
         progress.completed += (op) =>

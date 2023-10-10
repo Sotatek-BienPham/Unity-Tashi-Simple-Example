@@ -17,7 +17,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &5349713810951252751
 Transform:
   m_ObjectHideFlags: 0
@@ -48,7 +48,8 @@ MonoBehaviour:
   NetworkConfig:
     ProtocolVersion: 0
     NetworkTransport: {fileID: 5349713810951252748}
-    PlayerPrefab: {fileID: 0}
+    PlayerPrefab: {fileID: 4416926081852918481, guid: f7ead457c89a741a0bd6e7ad08801c73,
+      type: 3}
     Prefabs:
       NetworkPrefabsLists:
       - {fileID: 11400000, guid: 68934dbcb9e85457094280a2220cbf48, type: 2}
@@ -84,7 +85,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Config:
     BindPort: 0
-    SyncInterval: 33
+    MinBaseEventIntervalMicros: 1500
     NetworkMode: 3
     TashiRelayBaseUrl: https://eastus.relay.infra.tashi.dev
     TashiRelayApiKey: k0qF4Synlgkpy5I1oiSE6wrS0eaKmJSt

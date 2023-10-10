@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using Tashi.NetworkTransport;
 using Unity.Netcode;
 using Unity.Services.Authentication;
@@ -53,39 +54,59 @@ public class LobbyManager : Singleton<LobbyManager>
         if (Time.realtimeSinceStartup >= nextLobbyRefresh)
         {
             this.nextLobbyRefresh = Time.realtimeSinceStartup + 2; /* Update after every 2 seconds */
-            this.LobbyUpdate();
-            this.ReceiveIncomingDetail();
+
+                this.LobbyUpdate();
+                this.ReceiveIncomingDetail();
+
         }
     }
 
     /* Tashi setup/update PlayerDataObject */
     public async void LobbyUpdate()
     {
-        var outgoingSessionDetails = NetworkTransport.OutgoingSessionDetails;
-
-        var updatePlayerOptions = new UpdatePlayerOptions();
-        if (outgoingSessionDetails.AddTo(updatePlayerOptions))
+        if (isUsingTashi)
         {
-            // Debug.Log("= PlayerData outgoingSessionDetails AddTo TRUE so can UpdatePLayerAsync");
+            var outgoingSessionDetails = NetworkTransport.OutgoingSessionDetails;
+
+            var updatePlayerOptions = new UpdatePlayerOptions();
+            if (outgoingSessionDetails.AddTo(updatePlayerOptions))
+            {
+                // Debug.Log("= PlayerData outgoingSessionDetails AddTo TRUE so can UpdatePLayerAsync");
+                CurrentLobby = await LobbyService.Instance.UpdatePlayerAsync(CurrentLobby.Id,
+                    AuthenticationService.Instance.PlayerId,
+                    updatePlayerOptions);
+            }
+
+            if (isSetInitPlayerDataObject == false)
+            {
+                isSetInitPlayerDataObject = true;
+                UpdatePlayerDataInCurrentLobby(CurrentLobby, AuthenticationService.Instance.Profile,
+                    isLobbyHost ? PlayerTypeInGame.Police.ToString() : PlayerTypeInGame.Thief.ToString(), false);
+            }
+
+            if (isLobbyHost)
+            {
+                var updateLobbyOptions = new UpdateLobbyOptions();
+                if (outgoingSessionDetails.AddTo(updateLobbyOptions))
+                {
+                    CurrentLobby = await LobbyService.Instance.UpdateLobbyAsync(CurrentLobby.Id, updateLobbyOptions);
+                }
+            }
+        }
+        else
+        {
+            // Debug.Log("Lobby Update in Not using Tashi");
+            if (isSetInitPlayerDataObject == false)
+            {
+                isSetInitPlayerDataObject = true;
+                UpdatePlayerDataInCurrentLobby(CurrentLobby, AuthenticationService.Instance.Profile,
+                    isLobbyHost ? PlayerTypeInGame.Police.ToString() : PlayerTypeInGame.Thief.ToString(), false);
+            }
+            var updateLobbyOptions = new UpdateLobbyOptions();
+            var updatePlayerOptions = new UpdatePlayerOptions();
             CurrentLobby = await LobbyService.Instance.UpdatePlayerAsync(CurrentLobby.Id,
                 AuthenticationService.Instance.PlayerId,
                 updatePlayerOptions);
-        }
-
-        if (isSetInitPlayerDataObject == false)
-        {
-            isSetInitPlayerDataObject = true;
-            UpdatePlayerDataInCurrentLobby(CurrentLobby, AuthenticationService.Instance.Profile,
-                isLobbyHost ? PlayerTypeInGame.Police.ToString() : PlayerTypeInGame.Thief.ToString(), false);
-        }
-
-        if (isLobbyHost)
-        {
-            var updateLobbyOptions = new UpdateLobbyOptions();
-            if (outgoingSessionDetails.AddTo(updateLobbyOptions))
-            {
-                CurrentLobby = await LobbyService.Instance.UpdateLobbyAsync(CurrentLobby.Id, updateLobbyOptions);
-            }
         }
     }
 
@@ -94,6 +115,7 @@ public class LobbyManager : Singleton<LobbyManager>
     {
         try
         {
+            if (!isUsingTashi) return;
             if (NetworkTransport.SessionState == SessionState.NotStarted)
             {
                 CurrentLobby = await LobbyService.Instance.GetLobbyAsync(CurrentLobby.Id);
@@ -200,6 +222,7 @@ public class LobbyManager : Singleton<LobbyManager>
         isSetInitPlayerDataObject = false;
         CurrentLobby = null;
         NetworkManager.Singleton.Shutdown();
+        MenuSceneManager.Instance.isStartingClient = false;
 
         if (MenuSceneManager.Instance is not null)
             MenuSceneManager.Instance.UpdateStatusText();
