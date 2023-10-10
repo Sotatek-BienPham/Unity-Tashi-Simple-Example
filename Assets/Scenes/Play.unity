@@ -4660,7 +4660,7 @@ PrefabInstance:
     - target: {fileID: 3501205752011366529, guid: 176360408aeb54632a75c463a261590d,
         type: 3}
       propertyPath: m_Name
-      value: === Network Mornitor
+      value: === Runtime Net Stats Monitor
       objectReference: {fileID: 0}
     - target: {fileID: 3501205752011366530, guid: 176360408aeb54632a75c463a261590d,
         type: 3}
