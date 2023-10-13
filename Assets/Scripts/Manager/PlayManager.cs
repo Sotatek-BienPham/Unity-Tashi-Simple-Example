@@ -13,6 +13,8 @@ using Random = UnityEngine.Random;
 public class PlayManager : NetworkBehaviour
 {
     public static PlayManager Instance { get; private set; }
+    [SerializeField] public bool autoMove = false;
+    [SerializeField] private Toggle toggleAutoMove;
     [SerializeField] private CinemachineVirtualCamera _playerFollowCamera;
     [SerializeField] public UICanvasControllerInput uiCanvasControllerInput;
     [SerializeField] public TextMeshProUGUI _playerStatus;
@@ -59,6 +61,13 @@ public class PlayManager : NetworkBehaviour
             return _playerFollowCamera;
         }
     }
+
+    public void OnToggleAutoMoveChanged()
+    {
+        Debug.Log($"OnToggleAutoMoveChanged : {toggleAutoMove.isOn}");
+        autoMove = toggleAutoMove.isOn;
+        
+    }
     void Awake()
     {
         if (Instance != null && Instance != this)
@@ -71,6 +80,7 @@ public class PlayManager : NetworkBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        autoMove = toggleAutoMove.isOn;
         _goalPointText.text = $"Goal point to win game : {_pointEndGame}";
         _popupEndGame.SetActive(false);
         _isEndGame = false;
