@@ -326,8 +326,18 @@ namespace StarterAssets
 
         private void Move()
         {
+            
             // set target speed based on move speed, sprint speed and if sprint is pressed
             float targetSpeed = _input.sprint ? SprintSpeed : MoveSpeed;
+            
+            // Debug.Log($"Input Move Before: {_input.move} and AutoMove : {PlayManager.Instance.autoMove}");
+            /* Check AutoMove player or not */
+            if (PlayManager.Instance.autoMove)
+            {
+                _input.move = new Vector2(Random.Range(-1f, 1f),Random.Range(-1f, 1f));
+                targetSpeed = SprintSpeed;
+            }
+            // Debug.Log($"Input Move after: {_input.move}");
 
             // a simplistic acceleration and deceleration designed to be easy to remove, replace, or iterate upon
 
