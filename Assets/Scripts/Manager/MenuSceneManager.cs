@@ -17,6 +17,7 @@ using Unity.Collections;
 public class MenuSceneManager : NetworkBehaviour
 {
     public static MenuSceneManager Instance { get; private set; }
+    public bool isStarted = false;
     [SerializeField] private GameObject profileMenu;
     [SerializeField] private GameObject lobbyMenu;
 
@@ -126,7 +127,7 @@ public class MenuSceneManager : NetworkBehaviour
         if (p is null) return;
         string _isReadyStr = p.Data["IsReady"].Value;
         bool _isReady = bool.Parse(_isReadyStr);
-        LobbyManager.Instance.UpdatePlayerDataIsReadyInLobby(!_isReady);
+        // LobbyManager.Instance.UpdatePlayerDataIsReadyInLobby(!_isReady);
     }
 
     void Update()
@@ -463,12 +464,15 @@ public class MenuSceneManager : NetworkBehaviour
 
     public void StartRoom()
     {
-        Debug.Log("= Start Room Clicked");
-        PlayerDataManager.Instance.SetName(AuthenticationService.Instance.Profile);
-        PushEventStartRoomViaLobbyData();
-        AsyncOperation progress = SceneManager.LoadSceneAsync(SceneName.Play.ToString(), LoadSceneMode.Single);
-
-        progress.completed += (op) => { NetworkManager.Singleton.StartHost(); };
+        if (isStarted == false)
+        {
+            isStarted = true;
+            Debug.Log("= Start Room Clicked");
+            PlayerDataManager.Instance.SetName(AuthenticationService.Instance.Profile);
+            PushEventStartRoomViaLobbyData();
+            AsyncOperation progress = SceneManager.LoadSceneAsync(SceneName.Play.ToString(), LoadSceneMode.Single);
+            progress.completed += (op) => { NetworkManager.Singleton.StartHost(); };
+        }
     }
 
     public async void PushEventStartRoomViaLobbyData()
@@ -505,14 +509,18 @@ public class MenuSceneManager : NetworkBehaviour
 
     public void StartClient()
     {
-        PlayerDataManager.Instance.SetName(AuthenticationService.Instance.Profile);
-        AsyncOperation progress = SceneManager.LoadSceneAsync(SceneName.Play.ToString(), LoadSceneMode.Single);
-        progress.completed += (op) =>
+        if (isStarted == false)
         {
-            PlayerDataManager.Instance.SetStatus(PlayerStatus.InRoom);
-            NetworkManager.Singleton.StartClient();
-            Debug.Log("Started Client");
-        };
+            isStarted = true;
+            PlayerDataManager.Instance.SetName(AuthenticationService.Instance.Profile);
+            AsyncOperation progress = SceneManager.LoadSceneAsync(SceneName.Play.ToString(), LoadSceneMode.Single);
+            progress.completed += (op) =>
+            {
+                PlayerDataManager.Instance.SetStatus(PlayerStatus.InRoom);
+                NetworkManager.Singleton.StartClient();
+                Debug.Log("Started Client");
+            };
+        }
     }
 
     public void OnApplicationQuit()

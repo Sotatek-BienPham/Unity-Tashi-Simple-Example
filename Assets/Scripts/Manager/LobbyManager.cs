@@ -66,7 +66,6 @@ public class LobbyManager : Singleton<LobbyManager>
         var updatePlayerOptions = new UpdatePlayerOptions();
         if (outgoingSessionDetails.AddTo(updatePlayerOptions))
         {
-            // Debug.Log("= PlayerData outgoingSessionDetails AddTo TRUE so can UpdatePLayerAsync");
             CurrentLobby = await LobbyService.Instance.UpdatePlayerAsync(CurrentLobby.Id,
                 AuthenticationService.Instance.PlayerId,
                 updatePlayerOptions);
@@ -75,8 +74,8 @@ public class LobbyManager : Singleton<LobbyManager>
         if (isSetInitPlayerDataObject == false)
         {
             isSetInitPlayerDataObject = true;
-            UpdatePlayerDataInCurrentLobby(CurrentLobby, AuthenticationService.Instance.Profile,
-                isLobbyHost ? PlayerTypeInGame.Police.ToString() : PlayerTypeInGame.Thief.ToString(), false);
+            // UpdatePlayerDataInCurrentLobby(CurrentLobby, AuthenticationService.Instance.Profile,
+            //     isLobbyHost ? PlayerTypeInGame.Police.ToString() : PlayerTypeInGame.Thief.ToString(), false);
         }
 
         if (isLobbyHost)
@@ -100,7 +99,7 @@ public class LobbyManager : Singleton<LobbyManager>
                 var incomingSessionDetails = IncomingSessionDetails.FromUnityLobby(CurrentLobby);
 
                 // This should be replaced with whatever logic you use to determine when a lobby is locked in.
-                if (incomingSessionDetails.AddressBook.Count >= 2)
+                if (incomingSessionDetails.AddressBook.Count == 2)
                 {
                     NetworkTransport.StartSession(incomingSessionDetails,
                         () => { Debug.Log("StartSession succeeded"); },
@@ -175,7 +174,7 @@ public class LobbyManager : Singleton<LobbyManager>
             string playerId = AuthenticationService.Instance.PlayerId;
 
             CurrentLobby = await LobbyService.Instance.UpdatePlayerAsync(CurrentLobby.Id, playerId, options);
-            Debug.Log("= UpdatePlayerDataIsReadyInLobby : isReady " + isReady.ToString());
+            
         }
         catch (LobbyServiceException e)
         {
@@ -202,7 +201,10 @@ public class LobbyManager : Singleton<LobbyManager>
         NetworkManager.Singleton.Shutdown();
 
         if (MenuSceneManager.Instance is not null)
+        {
             MenuSceneManager.Instance.UpdateStatusText();
+            MenuSceneManager.Instance.isStarted = false;
+        }
     }
 
     public void OnApplicationQuit()
