@@ -61,28 +61,43 @@ public class LobbyManager : Singleton<LobbyManager>
     /* Tashi setup/update PlayerDataObject */
     public async void LobbyUpdate()
     {
-        var outgoingSessionDetails = NetworkTransport.OutgoingSessionDetails;
-
-        var updatePlayerOptions = new UpdatePlayerOptions();
-        if (outgoingSessionDetails.AddTo(updatePlayerOptions))
+        if (isUsingTashi)
         {
+            var outgoingSessionDetails = NetworkTransport.OutgoingSessionDetails;
+
+            var updatePlayerOptions = new UpdatePlayerOptions();
+            if (outgoingSessionDetails.AddTo(updatePlayerOptions))
+            {
+                CurrentLobby = await LobbyService.Instance.UpdatePlayerAsync(CurrentLobby.Id,
+                    AuthenticationService.Instance.PlayerId,
+                    updatePlayerOptions);
+            }
+
+            if (isSetInitPlayerDataObject == false)
+            {
+                isSetInitPlayerDataObject = true;
+                // UpdatePlayerDataInCurrentLobby(CurrentLobby, AuthenticationService.Instance.Profile,
+                //     isLobbyHost ? PlayerTypeInGame.Police.ToString() : PlayerTypeInGame.Thief.ToString(), false);
+            }
+
+            if (isLobbyHost)
+            {
+                var updateLobbyOptions = new UpdateLobbyOptions();
+                if (outgoingSessionDetails.AddTo(updateLobbyOptions))
+                {
+                    CurrentLobby = await LobbyService.Instance.UpdateLobbyAsync(CurrentLobby.Id, updateLobbyOptions);
+                }
+            }
+        }
+        else
+        {
+            var updatePlayerOptions = new UpdatePlayerOptions();
             CurrentLobby = await LobbyService.Instance.UpdatePlayerAsync(CurrentLobby.Id,
                 AuthenticationService.Instance.PlayerId,
                 updatePlayerOptions);
-        }
-
-        if (isSetInitPlayerDataObject == false)
-        {
-            isSetInitPlayerDataObject = true;
-            // UpdatePlayerDataInCurrentLobby(CurrentLobby, AuthenticationService.Instance.Profile,
-            //     isLobbyHost ? PlayerTypeInGame.Police.ToString() : PlayerTypeInGame.Thief.ToString(), false);
-        }
-
-        if (isLobbyHost)
-        {
-            var updateLobbyOptions = new UpdateLobbyOptions();
-            if (outgoingSessionDetails.AddTo(updateLobbyOptions))
+            if (isLobbyHost)
             {
+                var updateLobbyOptions = new UpdateLobbyOptions();
                 CurrentLobby = await LobbyService.Instance.UpdateLobbyAsync(CurrentLobby.Id, updateLobbyOptions);
             }
         }
@@ -93,17 +108,20 @@ public class LobbyManager : Singleton<LobbyManager>
     {
         try
         {
-            if (NetworkTransport.SessionState == SessionState.NotStarted)
+            if (isUsingTashi)
             {
-                CurrentLobby = await LobbyService.Instance.GetLobbyAsync(CurrentLobby.Id);
-                var incomingSessionDetails = IncomingSessionDetails.FromUnityLobby(CurrentLobby);
-
-                // This should be replaced with whatever logic you use to determine when a lobby is locked in.
-                if (incomingSessionDetails.AddressBook.Count == 2)
+                if (NetworkTransport.SessionState == SessionState.NotStarted)
                 {
-                    NetworkTransport.StartSession(incomingSessionDetails,
-                        () => { Debug.Log("StartSession succeeded"); },
-                        () => { Debug.Log("StartSession failed"); });
+                    CurrentLobby = await LobbyService.Instance.GetLobbyAsync(CurrentLobby.Id);
+                    var incomingSessionDetails = IncomingSessionDetails.FromUnityLobby(CurrentLobby);
+
+                    // This should be replaced with whatever logic you use to determine when a lobby is locked in.
+                    if (incomingSessionDetails.AddressBook.Count == CurrentLobby.MaxPlayers) // I changed here 
+                    {
+                        NetworkTransport.StartSession(incomingSessionDetails,
+                            () => { Debug.Log("StartSession succeeded"); },
+                            () => { Debug.Log("StartSession failed"); });
+                    }
                 }
             }
         }
@@ -174,7 +192,6 @@ public class LobbyManager : Singleton<LobbyManager>
             string playerId = AuthenticationService.Instance.PlayerId;
 
             CurrentLobby = await LobbyService.Instance.UpdatePlayerAsync(CurrentLobby.Id, playerId, options);
-            
         }
         catch (LobbyServiceException e)
         {

@@ -7,11 +7,9 @@ using TMPro;
 using UnityEngine.SceneManagement;
 using System;
 using Unity.Services.Authentication;
-using Unity.Services.Core;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using Random = UnityEngine.Random;
-using Tashi.NetworkTransport;
 using Unity.Collections;
 
 public class MenuSceneManager : NetworkBehaviour
@@ -26,9 +24,6 @@ public class MenuSceneManager : NetworkBehaviour
 
     [SerializeField] private TextMeshProUGUI statusText;
     [SerializeField] private Button signInButton;
-
-    public TashiNetworkTransport NetworkTransport =>
-        NetworkManager.Singleton.NetworkConfig.NetworkTransport as TashiNetworkTransport;
 
     [Header("Lobby Menu")] [SerializeField]
     private TMP_InputField _numberPlayerInRoomTextField;
